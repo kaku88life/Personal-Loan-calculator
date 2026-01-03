@@ -21,6 +21,14 @@ const defaultLoanTerms = {
     other: 10
 };
 
+// Default loan ratios by type (in %)
+const defaultLoanRatios = {
+    mortgage: 80,
+    car: 100,
+    personal: 100,
+    other: 80
+};
+
 // DOM Elements
 const elements = {
     // Controls
@@ -78,7 +86,27 @@ const elements = {
     modalClose: document.getElementById('modalClose'),
     periodSlider: document.getElementById('periodSlider'),
     periodDisplay: document.getElementById('periodDisplay'),
-    periodDetails: document.getElementById('periodDetails')
+    periodDetails: document.getElementById('periodDetails'),
+
+    // Settings dropdown
+    settingsToggle: document.getElementById('settingsToggle'),
+    settingsMenu: document.getElementById('settingsMenu'),
+
+    // Grace payment toggle
+    graceToggleContainer: document.getElementById('graceToggleContainer'),
+    gracePaymentToggle: document.getElementById('gracePaymentToggle'),
+    gracePaymentValue: document.getElementById('gracePaymentValue'),
+
+    // Expand buttons
+    expandPaymentChart: document.getElementById('expandPaymentChart'),
+    expandBalanceChart: document.getElementById('expandBalanceChart'),
+    expandTable: document.getElementById('expandTable'),
+
+    // Fullscreen modal
+    fullscreenModal: document.getElementById('fullscreenModal'),
+    fullscreenTitle: document.getElementById('fullscreenTitle'),
+    fullscreenClose: document.getElementById('fullscreenClose'),
+    fullscreenBody: document.getElementById('fullscreenBody')
 };
 
 // Initialize application
@@ -165,7 +193,7 @@ function setupEventListeners() {
         }
     });
 
-    // Loan type change - update default term and handle custom type
+    // Loan type change - update default term, ratio and handle custom type
     elements.loanTypeSelect.addEventListener('change', (e) => {
         const loanType = e.target.value;
 
@@ -180,6 +208,11 @@ function setupEventListeners() {
         // Update default loan term based on loan type
         if (defaultLoanTerms[loanType]) {
             elements.loanTerm.value = defaultLoanTerms[loanType];
+        }
+
+        // Update default loan ratio based on loan type
+        if (defaultLoanRatios[loanType]) {
+            elements.loanRatio.value = defaultLoanRatios[loanType];
         }
     });
 
@@ -244,6 +277,54 @@ function setupEventListeners() {
             elements.periodDisplay.textContent = period;
             updatePeriodDetails(period);
         });
+    }
+
+    // Settings dropdown toggle
+    if (elements.settingsToggle) {
+        elements.settingsToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = elements.settingsToggle.parentElement;
+            dropdown.classList.toggle('active');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = elements.settingsToggle.parentElement;
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+    }
+
+    // Grace payment toggle (switch between grace period and post-grace period display)
+    if (elements.gracePaymentToggle) {
+        elements.gracePaymentToggle.addEventListener('change', (e) => {
+            updateGracePaymentDisplay();
+        });
+    }
+
+    // Expand buttons
+    if (elements.expandPaymentChart) {
+        elements.expandPaymentChart.addEventListener('click', () => {
+            openFullscreen('paymentChart', i18n.t('paymentChart'));
+        });
+    }
+
+    if (elements.expandBalanceChart) {
+        elements.expandBalanceChart.addEventListener('click', () => {
+            openFullscreen('balanceChart', i18n.t('balanceChart'));
+        });
+    }
+
+    if (elements.expandTable) {
+        elements.expandTable.addEventListener('click', () => {
+            openFullscreen('table', i18n.t('amortizationSchedule'));
+        });
+    }
+
+    // Fullscreen close
+    if (elements.fullscreenClose) {
+        elements.fullscreenClose.addEventListener('click', closeFullscreen);
     }
 
     // Payment method change
@@ -467,12 +548,32 @@ function calculate() {
 
 // Display calculation results
 function displayResults(results) {
+    // Check if there's a grace period
+    const hasGracePeriod = results.graceMonths > 0;
+
     // Monthly payment
-    if (results.monthlyPayment !== null && results.graceMonths === 0) {
-        elements.monthlyPaymentValue.textContent = i18n.formatCurrency(results.monthlyPayment);
+    if (hasGracePeriod) {
+        // Show toggle for grace period payments
+        elements.graceToggleContainer.style.display = 'block';
+        elements.monthlyPaymentValue.style.display = 'none';
+
+        // Store values for toggle
+        elements.graceToggleContainer.dataset.gracePayment = results.monthlyPaymentFirst;
+        elements.graceToggleContainer.dataset.postGracePayment = results.monthlyPaymentLast;
+
+        // Update display based on toggle state
+        updateGracePaymentDisplay();
     } else {
-        elements.monthlyPaymentValue.textContent =
-            `${i18n.formatCurrency(results.monthlyPaymentFirst)} ~ ${i18n.formatCurrency(results.monthlyPaymentLast)}`;
+        // Hide toggle, show normal payment
+        elements.graceToggleContainer.style.display = 'none';
+        elements.monthlyPaymentValue.style.display = 'block';
+
+        if (results.monthlyPayment !== null) {
+            elements.monthlyPaymentValue.textContent = i18n.formatCurrency(results.monthlyPayment);
+        } else {
+            elements.monthlyPaymentValue.textContent =
+                `${i18n.formatCurrency(results.monthlyPaymentFirst)} ~ ${i18n.formatCurrency(results.monthlyPaymentLast)}`;
+        }
     }
 
     // Total payment
@@ -488,6 +589,18 @@ function displayResults(results) {
     if (elements.aprValue) {
         elements.aprValue.textContent = i18n.formatPercent(results.apr);
     }
+}
+
+// Update grace payment display based on toggle state
+function updateGracePaymentDisplay() {
+    if (!elements.graceToggleContainer || !elements.gracePaymentValue) return;
+
+    const isPostGrace = elements.gracePaymentToggle?.checked;
+    const gracePayment = parseFloat(elements.graceToggleContainer.dataset.gracePayment) || 0;
+    const postGracePayment = parseFloat(elements.graceToggleContainer.dataset.postGracePayment) || 0;
+
+    const displayValue = isPostGrace ? postGracePayment : gracePayment;
+    elements.gracePaymentValue.textContent = i18n.formatCurrency(displayValue);
 }
 
 // Update charts
@@ -828,6 +941,136 @@ function updatePeriodDetails(period) {
             <div class="value">${i18n.formatCurrency(entry.remainingBalance)}</div>
         </div>
     `;
+}
+
+// Fullscreen Modal Functions
+function openFullscreen(type, title) {
+    if (!elements.fullscreenModal) return;
+
+    elements.fullscreenTitle.textContent = title;
+    elements.fullscreenBody.innerHTML = '';
+
+    if (type === 'paymentChart' || type === 'balanceChart') {
+        // Clone the chart canvas and recreate the chart
+        const originalCanvas = document.getElementById(type);
+        const newCanvas = document.createElement('canvas');
+        newCanvas.id = 'fullscreen-' + type;
+        newCanvas.style.width = '100%';
+        newCanvas.style.height = 'calc(100vh - 150px)';
+        elements.fullscreenBody.appendChild(newCanvas);
+
+        // Recreate chart in fullscreen
+        const chartData = calculator.getChartData();
+        const colors = getThemeColors();
+
+        if (type === 'paymentChart') {
+            new Chart(newCanvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: i18n.t('paymentAmount'),
+                        data: chartData.payments,
+                        borderColor: colors.accent,
+                        backgroundColor: colors.accent + '20',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: getChartOptions(colors)
+            });
+        } else {
+            new Chart(newCanvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: i18n.t('principalPaid'),
+                            data: chartData.cumulativePrincipal,
+                            borderColor: colors.success,
+                            backgroundColor: colors.success + '20',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 2,
+                            pointHoverRadius: 5
+                        },
+                        {
+                            label: i18n.t('interestPaid'),
+                            data: chartData.cumulativeInterest,
+                            borderColor: colors.warning,
+                            backgroundColor: colors.warning + '20',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 2,
+                            pointHoverRadius: 5
+                        }
+                    ]
+                },
+                options: getChartOptions(colors)
+            });
+        }
+    } else if (type === 'table') {
+        // Clone the table
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'table-scroll';
+        const table = document.getElementById('amortizationTable').cloneNode(true);
+        tableContainer.appendChild(table);
+        elements.fullscreenBody.appendChild(tableContainer);
+    }
+
+    elements.fullscreenModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeFullscreen() {
+    if (!elements.fullscreenModal) return;
+    elements.fullscreenModal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function getChartOptions(colors) {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                labels: { color: colors.text }
+            },
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        return `${context.dataset.label}: ${i18n.formatCurrency(context.raw)}`;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: i18n.t('period'),
+                    color: colors.textMuted
+                },
+                ticks: { color: colors.textMuted },
+                grid: { color: colors.grid }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: i18n.getCurrencySymbol(),
+                    color: colors.textMuted
+                },
+                ticks: {
+                    color: colors.textMuted,
+                    callback: (value) => i18n.formatNumber(value)
+                },
+                grid: { color: colors.grid }
+            }
+        }
+    };
 }
 
 // Make removeCostItem available globally

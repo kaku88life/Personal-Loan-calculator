@@ -30,6 +30,8 @@ const translations = {
         equalPrincipal: '本金平均攤還（等額本金）',
         gracePeriod: '寬限期',
         gracePeriodHint: '寬限期內只繳利息，不還本金',
+        gracePeriodPayment: '寬限期內',
+        postGracePeriodPayment: '寬限期後',
 
         // Additional Costs
         additionalCosts: '額外費用',
@@ -125,6 +127,8 @@ const translations = {
         equalPrincipal: 'Equal Principal',
         gracePeriod: 'Grace Period',
         gracePeriodHint: 'Interest-only payments during grace period',
+        gracePeriodPayment: 'During Grace',
+        postGracePeriodPayment: 'After Grace',
 
         // Additional Costs
         additionalCosts: 'Additional Costs',
@@ -220,6 +224,8 @@ const translations = {
         equalPrincipal: '元金均等返済',
         gracePeriod: '据置期間',
         gracePeriodHint: '据置期間中は利息のみ支払い',
+        gracePeriodPayment: '据置期間中',
+        postGracePeriodPayment: '据置期間後',
 
         // Additional Costs
         additionalCosts: '追加費用',
