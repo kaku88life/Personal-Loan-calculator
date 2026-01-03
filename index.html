@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>貸款計算機 | Loan Calculator | ローン計算機</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-light">
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1 data-i18n="title">貸款計算機</h1>
+            <div class="header-controls">
+                <!-- Language Selector -->
+                <div class="control-group">
+                    <label data-i18n="language">語言</label>
+                    <select id="languageSelect">
+                        <option value="zh">中文</option>
+                        <option value="en">English</option>
+                        <option value="ja">日本語</option>
+                    </select>
+                </div>
+                <!-- Theme Toggle Button -->
+                <button type="button" class="theme-toggle" id="themeToggle" title="切換主題">
+                    <span class="theme-icon" id="themeIcon">🌤️</span>
+                </button>
+                <!-- Currency Selector -->
+                <div class="control-group">
+                    <label data-i18n="currency">幣別</label>
+                    <select id="currencySelect">
+                        <option value="TWD">TWD (台幣)</option>
+                        <option value="JPY">JPY (日幣)</option>
+                        <option value="USD">USD (美金)</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Input Section -->
+            <section class="input-section">
+                <h2 data-i18n="loanDetails">貸款資訊</h2>
+
+                <!-- Loan Type -->
+                <div class="form-group">
+                    <label data-i18n="loanType">貸款類型</label>
+                    <div class="loan-type-container">
+                        <select id="loanTypeSelect">
+                            <option value="mortgage" data-i18n="mortgage">房貸</option>
+                            <option value="car" data-i18n="carLoan">車貸</option>
+                            <option value="personal" data-i18n="personalLoan">信貸</option>
+                            <option value="other" data-i18n="other">其他</option>
+                        </select>
+                        <input type="text" id="customLoanType" class="hidden" placeholder="請輸入貸款類型">
+                    </div>
+                </div>
+
+                <!-- Loan Amount -->
+                <div class="form-group">
+                    <label data-i18n="loanAmount">貸款金額</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="loanAmount" min="0" step="10000" value="1000000">
+                        <span class="unit" id="currencyUnit">TWD</span>
+                    </div>
+                </div>
+
+                <!-- Compact Row: Ratio, Term, Rate -->
+                <div class="form-row compact-row">
+                    <!-- Loan Ratio -->
+                    <div class="form-group compact">
+                        <label data-i18n="loanRatio">貸款成數</label>
+                        <div class="input-inline">
+                            <input type="number" id="loanRatio" min="0" max="100" step="5" value="80">
+                            <span class="unit-inline">%</span>
+                        </div>
+                    </div>
+
+                    <!-- Loan Term -->
+                    <div class="form-group compact">
+                        <label data-i18n="loanTerm">貸款年限</label>
+                        <div class="input-inline">
+                            <input type="number" id="loanTerm" min="1" max="40" step="1" value="20">
+                            <span class="unit-inline" data-i18n="years">年</span>
+                        </div>
+                    </div>
+
+                    <!-- Interest Rate -->
+                    <div class="form-group compact">
+                        <label data-i18n="interestRate">年利率</label>
+                        <div class="input-inline">
+                            <input type="number" id="interestRate" min="0" max="30" step="0.01" value="2.0">
+                            <span class="unit-inline">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grace Period -->
+                <div class="form-group">
+                    <label data-i18n="gracePeriod">寬限期</label>
+                    <div class="input-with-unit grace-input">
+                        <input type="number" id="gracePeriod" min="0" max="60" step="1" value="0">
+                        <span class="unit" data-i18n="months">個月</span>
+                    </div>
+                    <small class="hint" data-i18n="gracePeriodHint">寬限期內只繳利息，不還本金</small>
+                </div>
+
+                <!-- Payment Method -->
+                <div class="form-group">
+                    <label data-i18n="paymentMethod">還款方式</label>
+                    <select id="paymentMethod">
+                        <option value="equalPayment" data-i18n="equalPayment">本息平均攤還（等額本息）</option>
+                        <option value="equalPrincipal" data-i18n="equalPrincipal">本金平均攤還（等額本金）</option>
+                    </select>
+                </div>
+
+                <!-- Additional Costs Section -->
+                <div class="form-group costs-section">
+                    <div class="costs-header">
+                        <label data-i18n="additionalCosts">額外費用</label>
+                        <button type="button" id="addCostBtn" class="btn-add">+</button>
+                    </div>
+                    <div id="costsContainer"></div>
+                    <div class="total-costs">
+                        <span data-i18n="totalCosts">總額外費用：</span>
+                        <span id="totalCostsValue">0</span>
+                    </div>
+                </div>
+
+                <!-- Calculate Button -->
+                <button type="button" id="calculateBtn" class="btn-primary" data-i18n="calculate">計算</button>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection">
+                <h2 data-i18n="results">計算結果</h2>
+
+                <!-- Summary Cards -->
+                <div class="summary-cards">
+                    <div class="card">
+                        <h3 data-i18n="monthlyPayment">每月還款金額</h3>
+                        <p id="monthlyPaymentValue" class="value">-</p>
+                    </div>
+                    <div class="card">
+                        <h3 data-i18n="totalPayment">總還款金額</h3>
+                        <p id="totalPaymentValue" class="value">-</p>
+                    </div>
+                    <div class="card">
+                        <h3 data-i18n="totalInterest">總利息</h3>
+                        <p id="totalInterestValue" class="value">-</p>
+                    </div>
+                    <div class="card">
+                        <h3 data-i18n="totalCostWithFees">總成本（含費用）</h3>
+                        <p id="totalCostValue" class="value">-</p>
+                    </div>
+                    <div class="card card-apr">
+                        <h3 data-i18n="apr">總費用年百分率</h3>
+                        <p id="aprValue" class="value">-</p>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <h3 data-i18n="paymentChart">還款金額趨勢圖</h3>
+                        <canvas id="paymentChart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3 data-i18n="balanceChart">本金利息累計圖</h3>
+                        <canvas id="balanceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Amortization Table -->
+                <div class="table-container">
+                    <h3 data-i18n="amortizationSchedule">還款明細表</h3>
+                    <div class="table-scroll">
+                        <table id="amortizationTable">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="period">期數</th>
+                                    <th data-i18n="payment">還款金額</th>
+                                    <th data-i18n="principal">本金</th>
+                                    <th data-i18n="interest">利息</th>
+                                    <th data-i18n="cumulativePrincipal">累計本金</th>
+                                    <th data-i18n="cumulativeInterest">累計利息</th>
+                                    <th data-i18n="remainingBalance">剩餘本金</th>
+                                </tr>
+                            </thead>
+                            <tbody id="amortizationBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Export Buttons -->
+                <div class="export-section">
+                    <h3 data-i18n="export">匯出</h3>
+                    <div class="export-buttons">
+                        <button type="button" id="exportCSV" class="btn-export">
+                            <span>📄</span> CSV
+                        </button>
+                        <button type="button" id="exportExcel" class="btn-export">
+                            <span>📊</span> Excel
+                        </button>
+                        <button type="button" id="exportPDF" class="btn-export">
+                            <span>📑</span> PDF
+                        </button>
+                        <button type="button" id="shareBtn" class="btn-export btn-share">
+                            <span>📤</span> <span data-i18n="share">分享</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p data-i18n="footer">© 2024 貸款計算機</p>
+        </footer>
+    </div>
+
+    <script src="i18n.js"></script>
+    <script src="calculator.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
