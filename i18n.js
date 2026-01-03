@@ -74,6 +74,8 @@ const translations = {
         share: '分享',
         shareTitle: '貸款計算結果',
         shareText: '我使用貸款計算機計算了貸款方案',
+        viewDetails: '查看詳細',
+        detailInfo: '詳細資訊',
 
         // Footer
         footer: '© 2024 貸款計算機',
@@ -167,6 +169,8 @@ const translations = {
         share: 'Share',
         shareTitle: 'Loan Calculation Results',
         shareText: 'I calculated a loan plan using Loan Calculator',
+        viewDetails: 'View Details',
+        detailInfo: 'Detail Information',
 
         // Footer
         footer: '© 2024 Loan Calculator',
@@ -260,6 +264,8 @@ const translations = {
         share: '共有',
         shareTitle: 'ローン計算結果',
         shareText: 'ローン計算機でローンプランを計算しました',
+        viewDetails: '詳細を見る',
+        detailInfo: '詳細情報',
 
         // Footer
         footer: '© 2024 ローン計算機',

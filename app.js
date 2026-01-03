@@ -13,6 +13,14 @@ const themes = ['light', 'dark', 'night'];
 const themeIcons = { light: '🌤️', dark: '🌙', night: '🌃' };
 let currentThemeIndex = 0;
 
+// Default loan terms by type (in years)
+const defaultLoanTerms = {
+    mortgage: 30,
+    car: 5,
+    personal: 5,
+    other: 10
+};
+
 // DOM Elements
 const elements = {
     // Controls
@@ -28,6 +36,9 @@ const elements = {
     loanRatio: document.getElementById('loanRatio'),
     loanTerm: document.getElementById('loanTerm'),
     gracePeriod: document.getElementById('gracePeriod'),
+    gracePeriodToggle: document.getElementById('gracePeriodToggle'),
+    gracePeriodInputs: document.getElementById('gracePeriodInputs'),
+    gracePeriodUnit: document.getElementById('gracePeriodUnit'),
     interestRate: document.getElementById('interestRate'),
     paymentMethod: document.getElementById('paymentMethod'),
     currencyUnit: document.getElementById('currencyUnit'),
@@ -49,11 +60,25 @@ const elements = {
     aprValue: document.getElementById('aprValue'),
     amortizationBody: document.getElementById('amortizationBody'),
 
-    // Export
+    // Export/Share dropdown
+    shareDropdownBtn: document.getElementById('shareDropdownBtn'),
+    shareDropdownMenu: document.getElementById('shareDropdownMenu'),
     exportCSV: document.getElementById('exportCSV'),
     exportExcel: document.getElementById('exportExcel'),
     exportPDF: document.getElementById('exportPDF'),
-    shareBtn: document.getElementById('shareBtn')
+    shareBtn: document.getElementById('shareBtn'),
+
+    // Chart magnify
+    magnifyPaymentChart: document.getElementById('magnifyPaymentChart'),
+    magnifyBalanceChart: document.getElementById('magnifyBalanceChart'),
+
+    // Modal
+    chartModal: document.getElementById('chartModal'),
+    modalTitle: document.getElementById('modalTitle'),
+    modalClose: document.getElementById('modalClose'),
+    periodSlider: document.getElementById('periodSlider'),
+    periodDisplay: document.getElementById('periodDisplay'),
+    periodDetails: document.getElementById('periodDetails')
 };
 
 // Initialize application
@@ -140,15 +165,86 @@ function setupEventListeners() {
         }
     });
 
-    // Loan type change
+    // Loan type change - update default term and handle custom type
     elements.loanTypeSelect.addEventListener('change', (e) => {
-        if (e.target.value === 'other') {
+        const loanType = e.target.value;
+
+        // Show/hide custom loan type input
+        if (loanType === 'other') {
             elements.customLoanType.classList.remove('hidden');
             elements.customLoanType.focus();
         } else {
             elements.customLoanType.classList.add('hidden');
         }
+
+        // Update default loan term based on loan type
+        if (defaultLoanTerms[loanType]) {
+            elements.loanTerm.value = defaultLoanTerms[loanType];
+        }
     });
+
+    // Grace period toggle
+    if (elements.gracePeriodToggle) {
+        elements.gracePeriodToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                elements.gracePeriodInputs.classList.add('active');
+            } else {
+                elements.gracePeriodInputs.classList.remove('active');
+            }
+        });
+    }
+
+    // Share dropdown toggle
+    if (elements.shareDropdownBtn) {
+        elements.shareDropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = elements.shareDropdownBtn.parentElement;
+            dropdown.classList.toggle('active');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = elements.shareDropdownBtn.parentElement;
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+    }
+
+    // Chart magnify buttons
+    if (elements.magnifyPaymentChart) {
+        elements.magnifyPaymentChart.addEventListener('click', () => {
+            openChartModal('payment');
+        });
+    }
+
+    if (elements.magnifyBalanceChart) {
+        elements.magnifyBalanceChart.addEventListener('click', () => {
+            openChartModal('balance');
+        });
+    }
+
+    // Modal close
+    if (elements.modalClose) {
+        elements.modalClose.addEventListener('click', closeChartModal);
+    }
+
+    if (elements.chartModal) {
+        elements.chartModal.addEventListener('click', (e) => {
+            if (e.target === elements.chartModal) {
+                closeChartModal();
+            }
+        });
+    }
+
+    // Period slider
+    if (elements.periodSlider) {
+        elements.periodSlider.addEventListener('input', (e) => {
+            const period = parseInt(e.target.value);
+            elements.periodDisplay.textContent = period;
+            updatePeriodDetails(period);
+        });
+    }
 
     // Payment method change
     elements.paymentMethod.addEventListener('change', () => {
@@ -285,12 +381,24 @@ function getAdditionalCosts() {
     return costs;
 }
 
+// Get grace period in months
+function getGracePeriodMonths() {
+    if (!elements.gracePeriodToggle?.checked) {
+        return 0;
+    }
+
+    const value = parseInt(elements.gracePeriod?.value || 0);
+    const unit = elements.gracePeriodUnit?.value || 'years';
+
+    return unit === 'years' ? value * 12 : value;
+}
+
 // Validate inputs
 function validateInputs() {
     const amount = parseFloat(elements.loanAmount.value);
     const term = parseFloat(elements.loanTerm.value);
     const rate = parseFloat(elements.interestRate.value);
-    const gracePeriod = parseInt(elements.gracePeriod?.value || 0);
+    const gracePeriod = getGracePeriodMonths();
     const totalMonths = term * 12;
 
     if (!amount || amount <= 0) {
@@ -328,7 +436,7 @@ function calculate() {
     const ratio = parseFloat(elements.loanRatio.value) || 100;
     const rate = parseFloat(elements.interestRate.value);
     const term = parseFloat(elements.loanTerm.value);
-    const gracePeriod = parseInt(elements.gracePeriod?.value || 0);
+    const gracePeriod = getGracePeriodMonths();
     const method = elements.paymentMethod.value;
     const costs = getAdditionalCosts();
 
@@ -649,6 +757,77 @@ function generateShareText() {
     lines.push(`${i18n.t('apr')}: ${summary.apr.toFixed(2)}%`);
 
     return lines.join('\n');
+}
+
+// Chart Modal Functions
+function openChartModal(type) {
+    if (!currentResults || !currentResults.schedule.length) return;
+
+    const schedule = currentResults.schedule;
+    const maxPeriod = schedule.length;
+
+    // Set modal title
+    elements.modalTitle.textContent = type === 'payment'
+        ? i18n.t('paymentChart')
+        : i18n.t('balanceChart');
+
+    // Configure slider
+    elements.periodSlider.max = maxPeriod;
+    elements.periodSlider.value = 1;
+    elements.periodDisplay.textContent = 1;
+
+    // Update details for period 1
+    updatePeriodDetails(1);
+
+    // Show modal
+    elements.chartModal.classList.add('active');
+}
+
+function closeChartModal() {
+    elements.chartModal.classList.remove('active');
+}
+
+function updatePeriodDetails(period) {
+    if (!currentResults || !currentResults.schedule.length) return;
+
+    const schedule = currentResults.schedule;
+    const entry = schedule[period - 1];
+
+    if (!entry) return;
+
+    const isGrace = entry.isGracePeriod;
+    const graceLabel = isGrace ? ` ${i18n.t('graceLabel')}` : '';
+
+    elements.periodDetails.innerHTML = `
+        <div class="detail-item highlight">
+            <div class="label">${i18n.t('period')}</div>
+            <div class="value">${entry.period}${graceLabel}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">${i18n.t('payment')}</div>
+            <div class="value">${i18n.formatCurrency(entry.payment)}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">${i18n.t('principal')}</div>
+            <div class="value">${i18n.formatCurrency(entry.principal)}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">${i18n.t('interest')}</div>
+            <div class="value">${i18n.formatCurrency(entry.interest)}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">${i18n.t('cumulativePrincipal')}</div>
+            <div class="value">${i18n.formatCurrency(entry.cumulativePrincipal)}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">${i18n.t('cumulativeInterest')}</div>
+            <div class="value">${i18n.formatCurrency(entry.cumulativeInterest)}</div>
+        </div>
+        <div class="detail-item">
+            <div class="label">${i18n.t('remainingBalance')}</div>
+            <div class="value">${i18n.formatCurrency(entry.remainingBalance)}</div>
+        </div>
+    `;
 }
 
 // Make removeCostItem available globally

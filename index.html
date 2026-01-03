@@ -85,7 +85,7 @@
                     <div class="form-group compact">
                         <label data-i18n="loanTerm">貸款年限</label>
                         <div class="input-inline">
-                            <input type="number" id="loanTerm" min="1" max="40" step="1" value="20">
+                            <input type="number" id="loanTerm" min="1" max="40" step="1" value="30">
                             <span class="unit-inline" data-i18n="years">年</span>
                         </div>
                     </div>
@@ -101,13 +101,24 @@
                 </div>
 
                 <!-- Grace Period -->
-                <div class="form-group">
-                    <label data-i18n="gracePeriod">寬限期</label>
-                    <div class="input-with-unit grace-input">
-                        <input type="number" id="gracePeriod" min="0" max="60" step="1" value="0">
-                        <span class="unit" data-i18n="months">個月</span>
+                <div class="form-group grace-period-group">
+                    <div class="grace-period-header">
+                        <label data-i18n="gracePeriod">寬限期</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="gracePeriodToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
-                    <small class="hint" data-i18n="gracePeriodHint">寬限期內只繳利息，不還本金</small>
+                    <div class="grace-period-inputs" id="gracePeriodInputs">
+                        <div class="input-with-select">
+                            <input type="number" id="gracePeriod" min="0" max="10" step="1" value="1">
+                            <select id="gracePeriodUnit">
+                                <option value="years" data-i18n="years">年</option>
+                                <option value="months" data-i18n="months">個月</option>
+                            </select>
+                        </div>
+                        <small class="hint" data-i18n="gracePeriodHint">寬限期內只繳利息，不還本金</small>
+                    </div>
                 </div>
 
                 <!-- Payment Method -->
@@ -138,7 +149,29 @@
 
             <!-- Results Section -->
             <section class="results-section" id="resultsSection">
-                <h2 data-i18n="results">計算結果</h2>
+                <div class="results-header">
+                    <h2 data-i18n="results">計算結果</h2>
+                    <div class="share-dropdown">
+                        <button type="button" class="btn-share-main" id="shareDropdownBtn" title="匯出/分享">
+                            <span>📤</span>
+                        </button>
+                        <div class="share-dropdown-menu" id="shareDropdownMenu">
+                            <button type="button" id="exportCSV" class="dropdown-item">
+                                <span>📄</span> CSV
+                            </button>
+                            <button type="button" id="exportExcel" class="dropdown-item">
+                                <span>📊</span> Excel
+                            </button>
+                            <button type="button" id="exportPDF" class="dropdown-item">
+                                <span>📑</span> PDF
+                            </button>
+                            <hr class="dropdown-divider">
+                            <button type="button" id="shareBtn" class="dropdown-item">
+                                <span>🔗</span> <span data-i18n="share">分享</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Summary Cards -->
                 <div class="summary-cards">
@@ -167,12 +200,42 @@
                 <!-- Charts -->
                 <div class="charts-container">
                     <div class="chart-wrapper">
-                        <h3 data-i18n="paymentChart">還款金額趨勢圖</h3>
+                        <div class="chart-header">
+                            <h3 data-i18n="paymentChart">還款金額趨勢圖</h3>
+                            <button type="button" class="btn-magnify" id="magnifyPaymentChart" title="查看詳細">
+                                🔍
+                            </button>
+                        </div>
                         <canvas id="paymentChart"></canvas>
                     </div>
                     <div class="chart-wrapper">
-                        <h3 data-i18n="balanceChart">本金利息累計圖</h3>
+                        <div class="chart-header">
+                            <h3 data-i18n="balanceChart">本金利息累計圖</h3>
+                            <button type="button" class="btn-magnify" id="magnifyBalanceChart" title="查看詳細">
+                                🔍
+                            </button>
+                        </div>
                         <canvas id="balanceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart Detail Modal -->
+                <div class="modal-overlay" id="chartModal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modalTitle">詳細資訊</h3>
+                            <button type="button" class="modal-close" id="modalClose">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="period-selector">
+                                <label data-i18n="period">期數</label>
+                                <input type="range" id="periodSlider" min="1" max="240" value="1">
+                                <span id="periodDisplay">1</span>
+                            </div>
+                            <div class="period-details" id="periodDetails">
+                                <!-- Period details will be populated here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -197,24 +260,6 @@
                     </div>
                 </div>
 
-                <!-- Export Buttons -->
-                <div class="export-section">
-                    <h3 data-i18n="export">匯出</h3>
-                    <div class="export-buttons">
-                        <button type="button" id="exportCSV" class="btn-export">
-                            <span>📄</span> CSV
-                        </button>
-                        <button type="button" id="exportExcel" class="btn-export">
-                            <span>📊</span> Excel
-                        </button>
-                        <button type="button" id="exportPDF" class="btn-export">
-                            <span>📑</span> PDF
-                        </button>
-                        <button type="button" id="shareBtn" class="btn-export btn-share">
-                            <span>📤</span> <span data-i18n="share">分享</span>
-                        </button>
-                    </div>
-                </div>
             </section>
         </main>
 
