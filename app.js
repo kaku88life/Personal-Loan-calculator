@@ -106,7 +106,13 @@ const elements = {
     fullscreenModal: document.getElementById('fullscreenModal'),
     fullscreenTitle: document.getElementById('fullscreenTitle'),
     fullscreenClose: document.getElementById('fullscreenClose'),
-    fullscreenBody: document.getElementById('fullscreenBody')
+    fullscreenBody: document.getElementById('fullscreenBody'),
+
+    // Font selector
+    fontSelect: document.getElementById('fontSelect'),
+
+    // Reset button
+    resetBtn: document.getElementById('resetBtn')
 };
 
 // Initialize application
@@ -145,6 +151,15 @@ function loadPreferences() {
     if (savedCurrency) {
         elements.currencySelect.value = savedCurrency;
         i18n.setCurrency(savedCurrency);
+    }
+
+    // Load saved font
+    const savedFont = localStorage.getItem('loanCalc_font');
+    if (savedFont && elements.fontSelect) {
+        elements.fontSelect.value = savedFont;
+    } else if (elements.fontSelect) {
+        // Set default font if no saved preference
+        elements.fontSelect.value = 'YuPearl-Medium';
     }
 }
 
@@ -338,6 +353,11 @@ function setupEventListeners() {
     // Calculate button
     elements.calculateBtn.addEventListener('click', calculate);
 
+    // Reset button
+    if (elements.resetBtn) {
+        elements.resetBtn.addEventListener('click', resetForm);
+    }
+
     // Export buttons
     elements.exportCSV.addEventListener('click', exportToCSV);
     elements.exportExcel.addEventListener('click', exportToExcel);
@@ -350,6 +370,40 @@ function setupEventListeners() {
             calculate();
         }
     });
+
+    // Font selector change
+    if (elements.fontSelect) {
+        elements.fontSelect.addEventListener('change', (e) => {
+            const font = e.target.value;
+            localStorage.setItem('loanCalc_font', font);
+        });
+    }
+
+    // Add thousand separator formatting to amount input
+    if (elements.loanAmount) {
+        elements.loanAmount.addEventListener('input', (e) => {
+            formatNumberInput(e.target);
+        });
+
+        elements.loanAmount.addEventListener('blur', (e) => {
+            const value = parseFormattedNumber(e.target.value);
+            if (value > 0) {
+                e.target.value = formatWithThousandSeparator(value);
+            }
+        });
+
+        elements.loanAmount.addEventListener('focus', (e) => {
+            e.target.value = parseFormattedNumber(e.target.value).toString();
+        });
+    }
+
+    // Format existing value if present
+    if (elements.loanAmount && elements.loanAmount.value) {
+        const value = parseFormattedNumber(elements.loanAmount.value);
+        if (value > 0) {
+            elements.loanAmount.value = formatWithThousandSeparator(value);
+        }
+    }
 }
 
 // Set theme
@@ -438,6 +492,59 @@ function removeCostItem(button) {
     }, 280);
 }
 
+// Reset form to default values
+function resetForm() {
+    // Confirm with user
+    if (!confirm(i18n.t('confirmReset') || '確定要重置所有輸入嗎？')) {
+        return;
+    }
+
+    // Reset loan type
+    elements.loanTypeSelect.value = 'mortgage';
+    elements.customLoanType.classList.add('hidden');
+
+    // Reset loan amount (with thousand separator)
+    elements.loanAmount.value = formatWithThousandSeparator(1000000);
+
+    // Reset loan ratio, term, and rate
+    elements.loanRatio.value = '80';
+    elements.loanTerm.value = '30';
+    elements.interestRate.value = '2.0';
+
+    // Reset grace period
+    if (elements.gracePeriodToggle) {
+        elements.gracePeriodToggle.checked = false;
+        elements.gracePeriodInputs.classList.remove('active');
+    }
+    if (elements.gracePeriod) {
+        elements.gracePeriod.value = '1';
+    }
+    if (elements.gracePeriodUnit) {
+        elements.gracePeriodUnit.value = 'years';
+    }
+
+    // Reset payment method
+    elements.paymentMethod.value = 'equalPayment';
+
+    // Clear all cost items
+    elements.costsContainer.innerHTML = '';
+    updateTotalCosts();
+
+    // Hide results section
+    if (elements.resultsSection) {
+        elements.resultsSection.style.display = 'none';
+    }
+
+    // Clear current results
+    currentResults = null;
+    currentSummary = null;
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    console.log('Form reset to default values');
+}
+
 // Update total additional costs display
 function updateTotalCosts() {
     const costs = getAdditionalCosts();
@@ -476,7 +583,7 @@ function getGracePeriodMonths() {
 
 // Validate inputs
 function validateInputs() {
-    const amount = parseFloat(elements.loanAmount.value);
+    const amount = parseFormattedNumber(elements.loanAmount.value);
     const term = parseFloat(elements.loanTerm.value);
     const rate = parseFloat(elements.interestRate.value);
     const gracePeriod = getGracePeriodMonths();
@@ -509,11 +616,53 @@ function validateInputs() {
     return true;
 }
 
+// Format number with thousand separator
+function formatWithThousandSeparator(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+// Parse formatted number (remove commas)
+function parseFormattedNumber(value) {
+    if (typeof value === 'number') return value;
+    const cleaned = value.toString().replace(/,/g, '');
+    return parseFloat(cleaned) || 0;
+}
+
+// Format number input with thousand separators while typing
+function formatNumberInput(input) {
+    const cursorPos = input.selectionStart;
+    const oldValue = input.value;
+    const oldLength = oldValue.length;
+
+    // Remove non-digit characters except dot
+    let cleaned = oldValue.replace(/[^\d.]/g, '');
+
+    // Split by dot for decimal handling
+    const parts = cleaned.split('.');
+    const integerPart = parts[0];
+    const decimalPart = parts.length > 1 ? parts[1] : '';
+
+    // Add thousand separators to integer part
+    const formatted = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+    // Combine with decimal if exists
+    const newValue = decimalPart ? `${formatted}.${decimalPart}` : formatted;
+
+    input.value = newValue;
+
+    // Adjust cursor position
+    const newLength = newValue.length;
+    const diff = newLength - oldLength;
+    const newCursorPos = cursorPos + diff;
+
+    input.setSelectionRange(newCursorPos, newCursorPos);
+}
+
 // Main calculation function
 function calculate() {
     if (!validateInputs()) return;
 
-    const amount = parseFloat(elements.loanAmount.value);
+    const amount = parseFormattedNumber(elements.loanAmount.value);
     const ratio = parseFloat(elements.loanRatio.value) || 100;
     const rate = parseFloat(elements.interestRate.value);
     const term = parseFloat(elements.loanTerm.value);
@@ -794,11 +943,19 @@ function exportToExcel() {
 }
 
 // Export to PDF
-function exportToPDF() {
+async function exportToPDF() {
     if (!currentResults || !currentSummary) return;
 
+    // Get selected font
+    const selectedFont = elements.fontSelect ? elements.fontSelect.value : 'YuPearl-Medium';
     const filename = `loan_schedule_${new Date().toISOString().slice(0, 10)}.pdf`;
-    downloadPDF(currentResults.schedule, currentSummary, i18n, filename);
+
+    try {
+        await downloadPDF(currentResults.schedule, currentSummary, i18n, selectedFont, filename);
+    } catch (error) {
+        console.error('PDF export failed:', error);
+        alert('PDF 匯出失敗，請稍後再試');
+    }
 }
 
 // Share results

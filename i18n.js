@@ -78,6 +78,7 @@ const translations = {
         shareText: '我使用貸款計算機計算了貸款方案',
         viewDetails: '查看詳細',
         detailInfo: '詳細資訊',
+        pdfFont: 'PDF 字體',
 
         // Footer
         footer: '© 2024 貸款計算機',
@@ -95,7 +96,10 @@ const translations = {
 
         // Currency
         currencySymbol: 'NT$',
-        currencyName: '台幣'
+        currencyName: '台幣',
+
+        // Confirm
+        confirmReset: '確定要重置所有輸入嗎？'
     },
 
     en: {
@@ -175,6 +179,7 @@ const translations = {
         shareText: 'I calculated a loan plan using Loan Calculator',
         viewDetails: 'View Details',
         detailInfo: 'Detail Information',
+        pdfFont: 'PDF Font',
 
         // Footer
         footer: '© 2024 Loan Calculator',
@@ -192,7 +197,10 @@ const translations = {
 
         // Currency
         currencySymbol: 'NT$',
-        currencyName: 'TWD'
+        currencyName: 'TWD',
+
+        // Confirm
+        confirmReset: 'Are you sure you want to reset all inputs?'
     },
 
     ja: {
@@ -272,6 +280,7 @@ const translations = {
         shareText: 'ローン計算機でローンプランを計算しました',
         viewDetails: '詳細を見る',
         detailInfo: '詳細情報',
+        pdfFont: 'PDFフォント',
 
         // Footer
         footer: '© 2024 ローン計算機',
@@ -289,7 +298,10 @@ const translations = {
 
         // Currency
         currencySymbol: '¥',
-        currencyName: 'JPY'
+        currencyName: 'JPY',
+
+        // Confirm
+        confirmReset: 'すべての入力をリセットしますか？'
     }
 };
 
@@ -426,7 +438,7 @@ class I18n {
 
     updateDocumentLang() {
         document.documentElement.lang = this.currentLang === 'zh' ? 'zh-TW' :
-                                         this.currentLang === 'ja' ? 'ja' : 'en';
+            this.currentLang === 'ja' ? 'ja' : 'en';
     }
 
     getCurrencySymbol() {

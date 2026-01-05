@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +10,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="styles.css">
+    <script src="font-loader.js"></script>
 </head>
+
 <body class="theme-light">
     <div class="container">
         <!-- Header -->
@@ -42,6 +45,14 @@
                                 <option value="USD">USD (美金)</option>
                             </select>
                         </div>
+                        <div class="settings-group">
+                            <label data-i18n="pdfFont">PDF 字體</label>
+                            <select id="fontSelect">
+                                <option value="YuPearl-Medium">粉圓體 Medium</option>
+                                <option value="Iansui-Regular">芫荽體</option>
+                                <option value="ChenYuluoyan-Thin">晨鈺落雁體</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -51,7 +62,12 @@
         <main class="main-content">
             <!-- Input Section -->
             <section class="input-section">
-                <h2 data-i18n="loanDetails">貸款資訊</h2>
+                <div class="section-header">
+                    <h2 data-i18n="loanDetails">貸款資訊</h2>
+                    <button type="button" id="resetBtn" class="btn-reset" title="重置所有輸入">
+                        <span>↻</span>
+                    </button>
+                </div>
 
                 <!-- Loan Type -->
                 <div class="form-group">
@@ -71,7 +87,7 @@
                 <div class="form-group">
                     <label data-i18n="loanAmount">貸款金額</label>
                     <div class="input-with-unit">
-                        <input type="number" id="loanAmount" min="0" step="10000" value="1000000">
+                        <input type="text" id="loanAmount" inputmode="numeric" pattern="[0-9,]*" value="1,000,000">
                         <span class="unit" id="currencyUnit">TWD</span>
                     </div>
                 </div>
@@ -322,4 +338,5 @@
     <script src="calculator.js"></script>
     <script src="app.js"></script>
 </body>
+
 </html>

@@ -447,9 +447,32 @@ function downloadExcel(schedule, summary, i18nInstance, filename = 'loan_schedul
     XLSX.writeFile(wb, filename);
 }
 
-function downloadPDF(schedule, summary, i18nInstance, filename = 'loan_schedule.pdf') {
+async function downloadPDF(schedule, summary, i18nInstance, fontName = 'YuPearl-Medium', filename = 'loan_schedule.pdf') {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
+
+    // TEMPORARILY DISABLED: Custom font loading causing download issues
+    // Will re-enable after fixing font loader
+    /*
+    let fontLoaded = false;
+
+    // Load and add custom font for Chinese support
+    try {
+        if (typeof FontLoader !== 'undefined' && fontName) {
+            await FontLoader.addFontToPDF(doc, fontName);
+            doc.setFont(fontName);
+            fontLoaded = true;
+            console.log(`Font ${fontName} loaded successfully`);
+        }
+    } catch (error) {
+        console.warn('Failed to load custom font, using default font:', error);
+        // Reset to default font
+        doc.setFont('helvetica');
+        fontLoaded = false;
+    }
+    */
+
+    console.log('Generating PDF without custom fonts...');
 
     // Title
     doc.setFontSize(18);
@@ -526,15 +549,31 @@ function downloadPDF(schedule, summary, i18nInstance, filename = 'loan_schedule.
         ]);
     }
 
+    // Use default font for table to ensure compatibility
+    const tableStyles = {
+        fontSize: 8,
+        cellPadding: 2
+    };
+
     doc.autoTable({
         head: tableHeaders,
         body: tableData,
         startY: y,
-        styles: { fontSize: 8, cellPadding: 2 },
-        headStyles: { fillColor: [67, 97, 238] }
+        styles: tableStyles,
+        headStyles: {
+            fillColor: [67, 97, 238]
+        }
     });
 
-    doc.save(filename);
+    // Save the PDF with proper filename
+    try {
+        doc.save(filename);
+        console.log(`PDF saved as: ${filename}`);
+    } catch (error) {
+        console.error('Error saving PDF:', error);
+        // Fallback: try saving with a simple name
+        doc.save('loan_schedule.pdf');
+    }
 }
 
 // Create global instance
