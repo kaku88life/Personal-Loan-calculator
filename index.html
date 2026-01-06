@@ -196,24 +196,26 @@
                 </div>
 
                 <!-- Summary Cards -->
-                <div class="summary-cards">
-                    <div class="card card-monthly-payment">
+                <div class="summary-grid">
+                    <!-- Row 1: Monthly Payment & APR -->
+                    <div class="card">
                         <h3 data-i18n="monthlyPayment">每月還款金額</h3>
-                        <div class="monthly-payment-display">
-                            <p id="monthlyPaymentValue" class="value">-</p>
-                            <div class="grace-toggle-container" id="graceToggleContainer" style="display: none;">
-                                <div class="grace-payment-toggle">
-                                    <span class="toggle-label" data-i18n="gracePeriodPayment">寬限期內</span>
-                                    <label class="mini-toggle">
-                                        <input type="checkbox" id="gracePaymentToggle">
-                                        <span class="mini-toggle-slider"></span>
-                                    </label>
-                                    <span class="toggle-label" data-i18n="postGracePeriodPayment">寬限期後</span>
-                                </div>
-                                <p id="gracePaymentValue" class="value grace-value">-</p>
-                            </div>
+                        <div class="grace-payment-toggle">
+                            <span class="toggle-label" data-i18n="gracePeriodPayment">寬限期內</span>
+                            <label class="mini-toggle">
+                                <input type="checkbox" id="gracePaymentToggle">
+                                <span class="mini-toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label" data-i18n="postGracePeriodPayment">寬限期後</span>
                         </div>
+                        <p id="gracePaymentValue" class="value grace-value">-</p>
                     </div>
+                    <div class="card card-apr">
+                        <h3 data-i18n="apr">總費用年百分率</h3>
+                        <p id="aprValue" class="value">-</p>
+                    </div>
+
+                    <!-- Row 2: Total Payment & Total Interest -->
                     <div class="card">
                         <h3 data-i18n="totalPayment">總還款金額</h3>
                         <p id="totalPaymentValue" class="value">-</p>
@@ -221,14 +223,6 @@
                     <div class="card">
                         <h3 data-i18n="totalInterest">總利息</h3>
                         <p id="totalInterestValue" class="value">-</p>
-                    </div>
-                    <div class="card">
-                        <h3 data-i18n="totalCostWithFees">總成本（含費用）</h3>
-                        <p id="totalCostValue" class="value">-</p>
-                    </div>
-                    <div class="card card-apr">
-                        <h3 data-i18n="apr">總費用年百分率</h3>
-                        <p id="aprValue" class="value">-</p>
                     </div>
                 </div>
 
@@ -330,7 +324,7 @@
 
         <!-- Footer -->
         <footer class="footer">
-            <p data-i18n="footer">© 2024 貸款計算機</p>
+            <p data-i18n="footer">© 2026 貸款計算機</p>
         </footer>
     </div>
 
