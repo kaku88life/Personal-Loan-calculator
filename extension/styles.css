@@ -80,41 +80,49 @@
 }
 
 html, body {
-    width: 420px;
-    min-height: 500px;
-    max-height: 600px;
+    width: 250px;
+    min-height: 200px;
+    max-height: 200px;
     overflow-y: auto;
     overflow-x: hidden;
+}
+
+/* 隱藏滾動條但保留滾動功能 */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 0;
+    display: none;
 }
 
 body {
     font-family: var(--font-family);
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    line-height: 1.5;
+    line-height: 1.4;
     transition: var(--transition);
-    font-size: 13px;
+    /* 響應式字體：基於視窗寬度縮放 */
+    font-size: clamp(9px, 3.6vw, 11px);
 }
 
 .container {
-    padding: 12px;
+    padding: 10px;
 }
 
 /* Header */
 .header {
     background: var(--bg-secondary);
     border-radius: var(--border-radius);
-    padding: 12px 16px;
-    margin-bottom: 12px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
     box-shadow: var(--shadow);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
 }
 
 .header h1 {
-    font-size: 1.2rem;
+    font-size: 1rem;
     color: var(--accent-color);
     font-weight: 700;
     white-space: nowrap;
@@ -122,14 +130,14 @@ body {
 
 .header-controls {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
 }
 
 /* Theme Toggle Button */
 .theme-toggle {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border: none;
     border-radius: 50%;
     background: var(--theme-btn-bg);
@@ -147,7 +155,7 @@ body {
 }
 
 .theme-toggle .theme-icon {
-    font-size: 1.2rem;
+    font-size: 1rem;
     line-height: 1;
 }
 
@@ -167,8 +175,8 @@ body {
 }
 
 .settings-toggle {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border: none;
     border-radius: 50%;
     background: var(--theme-btn-bg);
@@ -178,7 +186,7 @@ body {
     align-items: center;
     justify-content: center;
     box-shadow: var(--shadow);
-    font-size: 1.2rem;
+    font-size: 1rem;
 }
 
 .settings-toggle:hover {
@@ -240,8 +248,8 @@ body {
 
 /* Open in New Tab Button */
 .btn-expand-window {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border: none;
     border-radius: 50%;
     background: var(--accent-color);
@@ -251,7 +259,7 @@ body {
     align-items: center;
     justify-content: center;
     box-shadow: var(--shadow);
-    font-size: 1rem;
+    font-size: 0.9rem;
 }
 
 .btn-expand-window:hover {

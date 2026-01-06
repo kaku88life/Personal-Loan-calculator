@@ -449,16 +449,9 @@ function getThemeColors() {
 function updateMonthlyPaymentLabel() {
     const label = document.querySelector('.card h3[data-i18n="monthlyPayment"]');
     if (label) {
-        const hasGrace = parseInt(elements.gracePeriod?.value || 0) > 0;
-        const isEqualPrincipal = elements.paymentMethod.value === 'equalPrincipal';
-
-        if (hasGrace || isEqualPrincipal) {
-            label.setAttribute('data-i18n', 'monthlyPaymentRange');
-            label.textContent = i18n.t('monthlyPaymentRange');
-        } else {
-            label.setAttribute('data-i18n', 'monthlyPayment');
-            label.textContent = i18n.t('monthlyPayment');
-        }
+        // Always use clean monthlyPayment label without parentheses
+        label.setAttribute('data-i18n', 'monthlyPayment');
+        label.textContent = i18n.t('monthlyPayment');
     }
 }
 
@@ -474,12 +467,22 @@ function addCostItem() {
 
     elements.costsContainer.appendChild(costItem);
 
-    // Add event listener for amount change
+    // Add event listeners for both name and amount changes
     const amountInput = costItem.querySelector('.cost-amount');
-    amountInput.addEventListener('input', updateTotalCosts);
+    const nameInput = costItem.querySelector('.cost-name');
+
+    if (amountInput) {
+        amountInput.addEventListener('input', updateTotalCosts);
+        amountInput.addEventListener('change', updateTotalCosts);
+    }
+
+    if (nameInput) {
+        nameInput.addEventListener('input', updateTotalCosts);
+        nameInput.addEventListener('change', updateTotalCosts);
+    }
 
     // Focus on name input
-    costItem.querySelector('.cost-name').focus();
+    nameInput?.focus();
 }
 
 // Remove cost item
@@ -700,39 +703,42 @@ function displayResults(results) {
     // Check if there's a grace period
     const hasGracePeriod = results.graceMonths > 0;
 
-    // Monthly payment
-    if (hasGracePeriod) {
-        // Show toggle for grace period payments
-        elements.graceToggleContainer.style.display = 'block';
-        elements.monthlyPaymentValue.style.display = 'none';
+    // Monthly payment - use grace payment value element
+    const toggleContainer = document.querySelector('.grace-payment-toggle');
 
-        // Store values for toggle
-        elements.graceToggleContainer.dataset.gracePayment = results.monthlyPaymentFirst;
-        elements.graceToggleContainer.dataset.postGracePayment = results.monthlyPaymentLast;
+    if (hasGracePeriod && toggleContainer) {
+        // Show toggle UI and store values
+        toggleContainer.style.display = 'flex';
+        toggleContainer.dataset.gracePayment = results.monthlyPaymentFirst;
+        toggleContainer.dataset.postGracePayment = results.monthlyPaymentLast;
 
         // Update display based on toggle state
         updateGracePaymentDisplay();
     } else {
-        // Hide toggle, show normal payment
-        elements.graceToggleContainer.style.display = 'none';
-        elements.monthlyPaymentValue.style.display = 'block';
+        // No grace period, hide toggle and show single payment value
+        if (toggleContainer) {
+            toggleContainer.style.display = 'none';
+        }
 
-        if (results.monthlyPayment !== null) {
-            elements.monthlyPaymentValue.textContent = i18n.formatCurrency(results.monthlyPayment);
-        } else {
-            elements.monthlyPaymentValue.textContent =
-                `${i18n.formatCurrency(results.monthlyPaymentFirst)} ~ ${i18n.formatCurrency(results.monthlyPaymentLast)}`;
+        if (elements.gracePaymentValue) {
+            if (results.monthlyPayment !== null) {
+                elements.gracePaymentValue.textContent = i18n.formatCurrency(results.monthlyPayment);
+            } else {
+                elements.gracePaymentValue.textContent =
+                    `${i18n.formatCurrency(results.monthlyPaymentFirst)} ~ ${i18n.formatCurrency(results.monthlyPaymentLast)}`;
+            }
         }
     }
 
     // Total payment
-    elements.totalPaymentValue.textContent = i18n.formatCurrency(results.totalPayment);
+    if (elements.totalPaymentValue) {
+        elements.totalPaymentValue.textContent = i18n.formatCurrency(results.totalPayment);
+    }
 
     // Total interest
-    elements.totalInterestValue.textContent = i18n.formatCurrency(results.totalInterest);
-
-    // Total cost with fees
-    elements.totalCostValue.textContent = i18n.formatCurrency(results.totalCost);
+    if (elements.totalInterestValue) {
+        elements.totalInterestValue.textContent = i18n.formatCurrency(results.totalInterest);
+    }
 
     // APR
     if (elements.aprValue) {
@@ -742,11 +748,12 @@ function displayResults(results) {
 
 // Update grace payment display based on toggle state
 function updateGracePaymentDisplay() {
-    if (!elements.graceToggleContainer || !elements.gracePaymentValue) return;
+    const toggleContainer = document.querySelector('.grace-payment-toggle');
+    if (!toggleContainer || !elements.gracePaymentValue) return;
 
     const isPostGrace = elements.gracePaymentToggle?.checked;
-    const gracePayment = parseFloat(elements.graceToggleContainer.dataset.gracePayment) || 0;
-    const postGracePayment = parseFloat(elements.graceToggleContainer.dataset.postGracePayment) || 0;
+    const gracePayment = parseFloat(toggleContainer.dataset.gracePayment) || 0;
+    const postGracePayment = parseFloat(toggleContainer.dataset.postGracePayment) || 0;
 
     const displayValue = isPostGrace ? postGracePayment : gracePayment;
     elements.gracePaymentValue.textContent = i18n.formatCurrency(displayValue);

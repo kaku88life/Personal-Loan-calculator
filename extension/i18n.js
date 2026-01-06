@@ -80,7 +80,7 @@ const translations = {
         detailInfo: '詳細資訊',
 
         // Footer
-        footer: '© 2024 貸款計算機',
+        footer: '© 2026 貸款計算機',
 
         // Alerts
         alertFillFields: '請填寫所有必要欄位',
@@ -177,7 +177,7 @@ const translations = {
         detailInfo: 'Detail Information',
 
         // Footer
-        footer: '© 2024 Loan Calculator',
+        footer: '© 2026 Loan Calculator',
 
         // Alerts
         alertFillFields: 'Please fill in all required fields',
@@ -274,7 +274,7 @@ const translations = {
         detailInfo: '詳細情報',
 
         // Footer
-        footer: '© 2024 ローン計算機',
+        footer: '© 2026 ローン計算機',
 
         // Alerts
         alertFillFields: 'すべての必須項目を入力してください',
