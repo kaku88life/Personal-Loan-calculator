@@ -3,7 +3,7 @@
 const translations = {
     zh: {
         // Header
-        title: '貸款計算機',
+        title: '個人貸款模擬試算',
         language: '語言',
         theme: '主題',
         currency: '幣別',
@@ -75,13 +75,13 @@ const translations = {
         export: '匯出',
         share: '分享',
         shareTitle: '貸款計算結果',
-        shareText: '我使用貸款計算機計算了貸款方案',
+        shareText: '我使用個人貸款模擬試算計算了貸款方案',
         viewDetails: '查看詳細',
         detailInfo: '詳細資訊',
         pdfFont: 'PDF 字體',
 
         // Footer
-        footer: '© 2026 貸款計算機',
+        footer: '© 2026 個人貸款模擬試算',
 
         // Alerts
         alertFillFields: '請填寫所有必要欄位',

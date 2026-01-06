@@ -1644,4 +1644,180 @@ input[type="number"]::-webkit-outer-spin-button {
         background: white;
         color: black;
     }
+}/* Cost Modal Styles */
+.cost-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.cost-modal {
+    background: var(--bg-card);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    width: 90%;
+    max-width: 450px;
+    padding: 0;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.cost-modal h3 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    margin: 0;
+}
+
+.cost-modal-body {
+    padding: 1.5rem;
+}
+
+.cost-modal-body .form-group {
+    margin-bottom: 1.25rem;
+}
+
+.cost-modal-body .form-group:last-child {
+    margin-bottom: 0;
+}
+
+.cost-modal-body label {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.cost-modal-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    color: var(--text-primary);
+    background: var(--input-bg);
+    transition: var(--transition);
+}
+
+.cost-modal-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+}
+
+.cost-modal-input::placeholder {
+    color: var(--text-muted);
+}
+
+.cost-modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.cost-modal-footer button {
+    padding: 0.65rem 1.5rem;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.cost-modal-footer .btn-cancel {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.cost-modal-footer .btn-cancel:hover {
+    background: var(--bg-secondary);
+}
+
+.cost-modal-footer .btn-confirm {
+    background: var(--accent-color);
+    color: white;
+}
+
+.cost-modal-footer .btn-confirm:hover {
+    background: var(--accent-hover);
+}
+
+/* Updated cost item display (no input fields) */
+.cost-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    margin-bottom: 0.5rem;
+}
+
+.cost-item .cost-name {
+    flex: 1;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.cost-item .cost-amount {
+    font-size: 0.95rem;
+    color: var(--accent-color);
+    font-weight: 600;
+    min-width: 120px;
+    text-align: right;
+}
+
+.cost-item .btn-remove {
+    background: transparent;
+    border: none;
+    color: var(--error-color);
+    font-size: 1.5rem;
+    line-height: 1;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    transition: var(--transition);
+    border-radius: 4px;
+}
+
+.cost-item .btn-remove:hover {
+    background: rgba(239, 68, 68, 0.1);
 }

@@ -451,9 +451,6 @@ async function downloadPDF(schedule, summary, i18nInstance, fontName = 'YuPearl-
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // TEMPORARILY DISABLED: Custom font loading causing download issues
-    // Will re-enable after fixing font loader
-    /*
     let fontLoaded = false;
 
     // Load and add custom font for Chinese support
@@ -470,9 +467,6 @@ async function downloadPDF(schedule, summary, i18nInstance, fontName = 'YuPearl-
         doc.setFont('helvetica');
         fontLoaded = false;
     }
-    */
-
-    console.log('Generating PDF without custom fonts...');
 
     // Title
     doc.setFontSize(18);
@@ -549,10 +543,11 @@ async function downloadPDF(schedule, summary, i18nInstance, fontName = 'YuPearl-
         ]);
     }
 
-    // Use default font for table to ensure compatibility
+    // Use custom font for table if loaded, otherwise use default
     const tableStyles = {
         fontSize: 8,
-        cellPadding: 2
+        cellPadding: 2,
+        font: fontLoaded ? fontName : 'helvetica'
     };
 
     doc.autoTable({

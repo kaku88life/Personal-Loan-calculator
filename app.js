@@ -56,6 +56,9 @@ const elements = {
     costsContainer: document.getElementById('costsContainer'),
     totalCostsValue: document.getElementById('totalCostsValue'),
 
+    // Reset button
+    resetBtn: document.getElementById('resetBtn'),
+
     // Calculate
     calculateBtn: document.getElementById('calculateBtn'),
 
@@ -455,34 +458,97 @@ function updateMonthlyPaymentLabel() {
     }
 }
 
-// Add cost item
+// Add cost item with modal dialog
 function addCostItem() {
-    const costItem = document.createElement('div');
-    costItem.className = 'cost-item';
-    costItem.innerHTML = `
-        <input type="text" class="cost-name" placeholder="${i18n.t('costNamePlaceholder')}">
-        <input type="number" class="cost-amount" placeholder="${i18n.t('costAmountPlaceholder')}" min="0" step="100">
-        <button type="button" class="btn-remove" onclick="removeCostItem(this)">&times;</button>
+    // Create modal dialog
+    const modal = document.createElement('div');
+    modal.className = 'cost-modal-overlay';
+    modal.innerHTML = `
+        <div class="cost-modal">
+            <h3>新增費用項目</h3>
+            <div class="cost-modal-body">
+                <div class="form-group">
+                    <label>項目名稱</label>
+                    <input type="text" id="costNameInput" class="cost-modal-input" placeholder="例如：手續費、代書費" autofocus>
+                </div>
+                <div class="form-group">
+                    <label>金額</label>
+                    <input type="number" id="costAmountInput" class="cost-modal-input" placeholder="請輸入金額" min="0" step="100">
+                </div>
+            </div>
+            <div class="cost-modal-footer">
+                <button type="button" class="btn-cancel">取消</button>
+                <button type="button" class="btn-confirm">確認</button>
+            </div>
+        </div>
     `;
 
-    elements.costsContainer.appendChild(costItem);
+    document.body.appendChild(modal);
 
-    // Add event listeners for both name and amount changes
-    const amountInput = costItem.querySelector('.cost-amount');
-    const nameInput = costItem.querySelector('.cost-name');
-
-    if (amountInput) {
-        amountInput.addEventListener('input', updateTotalCosts);
-        amountInput.addEventListener('change', updateTotalCosts);
-    }
-
-    if (nameInput) {
-        nameInput.addEventListener('input', updateTotalCosts);
-        nameInput.addEventListener('change', updateTotalCosts);
-    }
+    const nameInput = modal.querySelector('#costNameInput');
+    const amountInput = modal.querySelector('#costAmountInput');
+    const confirmBtn = modal.querySelector('.btn-confirm');
+    const cancelBtn = modal.querySelector('.btn-cancel');
 
     // Focus on name input
-    nameInput?.focus();
+    setTimeout(() => nameInput.focus(), 100);
+
+    // Close modal function
+    const closeModal = () => {
+        modal.remove();
+    };
+
+    // Cancel button
+    cancelBtn.addEventListener('click', closeModal);
+
+    // Click outside to close
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    // Confirm button - add cost to list
+    const confirmAdd = () => {
+        const name = nameInput.value.trim();
+        const amount = parseFloat(amountInput.value);
+
+        if (!name) {
+            alert('請輸入項目名稱');
+            nameInput.focus();
+            return;
+        }
+
+        if (isNaN(amount) || amount <= 0) {
+            alert('請輸入有效的金額');
+            amountInput.focus();
+            return;
+        }
+
+        // Create cost item in list
+        const costItem = document.createElement('div');
+        costItem.className = 'cost-item';
+        costItem.innerHTML = `
+            <span class="cost-name">${name}</span>
+            <span class="cost-amount">NT$ ${amount.toLocaleString()}</span>
+            <button type="button" class="btn-remove" onclick="removeCostItem(this)">&times;</button>
+        `;
+
+        // Store data in element for calculation
+        costItem.dataset.name = name;
+        costItem.dataset.amount = amount;
+
+        elements.costsContainer.appendChild(costItem);
+        updateTotalCosts();
+        closeModal();
+    };
+
+    confirmBtn.addEventListener('click', confirmAdd);
+
+    // Enter key to confirm
+    [nameInput, amountInput].forEach(input => {
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') confirmAdd();
+        });
+    });
 }
 
 // Remove cost item
@@ -507,12 +573,12 @@ function resetForm() {
     elements.customLoanType.classList.add('hidden');
 
     // Reset loan amount (with thousand separator)
-    elements.loanAmount.value = formatWithThousandSeparator(1000000);
+    elements.loanAmount.value = formatWithThousandSeparator(10000000);  // 改為 1000 萬
 
     // Reset loan ratio, term, and rate
     elements.loanRatio.value = '80';
     elements.loanTerm.value = '30';
-    elements.interestRate.value = '2.0';
+    elements.interestRate.value = '2.5';  // 改為 2.5%
 
     // Reset grace period
     if (elements.gracePeriodToggle) {
@@ -557,14 +623,14 @@ function updateTotalCosts() {
 
 // Get additional costs from inputs
 function getAdditionalCosts() {
-    const costItems = elements.costsContainer.querySelectorAll('.cost-item');
     const costs = [];
+    const costItems = elements.costsContainer.querySelectorAll('.cost-item');
 
     costItems.forEach(item => {
-        const name = item.querySelector('.cost-name').value.trim();
-        const amount = parseFloat(item.querySelector('.cost-amount').value) || 0;
+        const name = item.dataset.name;
+        const amount = parseFloat(item.dataset.amount);
 
-        if (name && amount > 0) {
+        if (name && !isNaN(amount) && amount > 0) {
             costs.push({ name, amount });
         }
     });
@@ -781,7 +847,7 @@ function updateCharts(results) {
                 borderColor: colors.accent,
                 backgroundColor: colors.accent + '20',
                 fill: true,
-                tension: 0.4,
+                stepped: true,  // 階梯狀：寬限期與還款期之間垂直90度變化，期間內水平
                 pointRadius: chartData.labels.length > 60 ? 0 : 3,
                 pointHoverRadius: 5
             }]
@@ -845,7 +911,7 @@ function updateCharts(results) {
                     borderColor: colors.success,
                     backgroundColor: colors.success + '20',
                     fill: true,
-                    tension: 0.4,
+                    tension: 0.4,  // 平滑曲線，顯示累計成長
                     pointRadius: chartData.labels.length > 60 ? 0 : 3,
                     pointHoverRadius: 5
                 },
@@ -855,7 +921,7 @@ function updateCharts(results) {
                     borderColor: colors.warning,
                     backgroundColor: colors.warning + '20',
                     fill: true,
-                    tension: 0.4,
+                    tension: 0.4,  // 平滑曲線，顯示累計成長
                     pointRadius: chartData.labels.length > 60 ? 0 : 3,
                     pointHoverRadius: 5
                 }

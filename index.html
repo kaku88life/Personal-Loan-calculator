@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>貸款計算機 | Loan Calculator | ローン計算機</title>
+    <title>個人貸款模擬試算 | Loan Calculator | ローン計算機</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -17,7 +17,7 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1 data-i18n="title">貸款計算機</h1>
+            <h1 data-i18n="title">個人貸款模擬試算</h1>
             <div class="header-controls">
                 <!-- Theme Toggle Button -->
                 <button type="button" class="theme-toggle" id="themeToggle" title="切換主題">
@@ -87,7 +87,7 @@
                 <div class="form-group">
                     <label data-i18n="loanAmount">貸款金額</label>
                     <div class="input-with-unit">
-                        <input type="text" id="loanAmount" inputmode="numeric" pattern="[0-9,]*" value="1,000,000">
+                        <input type="text" id="loanAmount" inputmode="numeric" pattern="[0-9,]*" value="10,000,000">
                         <span class="unit" id="currencyUnit">TWD</span>
                     </div>
                 </div>
@@ -116,7 +116,7 @@
                     <div class="form-group compact">
                         <label data-i18n="interestRate">年利率</label>
                         <div class="input-inline">
-                            <input type="number" id="interestRate" min="0" max="30" step="0.01" value="2.0">
+                            <input type="number" id="interestRate" min="0" max="30" step="0.01" value="2.5">
                             <span class="unit-inline">%</span>
                         </div>
                     </div>
@@ -324,7 +324,7 @@
 
         <!-- Footer -->
         <footer class="footer">
-            <p data-i18n="footer">© 2026 貸款計算機</p>
+            <p data-i18n="footer">© 2026 個人貸款模擬試算</p>
         </footer>
     </div>
 

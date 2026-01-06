@@ -64,7 +64,7 @@ const elements = {
     monthlyPaymentValue: document.getElementById('monthlyPaymentValue'),
     totalPaymentValue: document.getElementById('totalPaymentValue'),
     totalInterestValue: document.getElementById('totalInterestValue'),
-    totalCostValue: document.getElementById('totalCostValue'),
+    // totalCostValue removed - field no longer exists
     aprValue: document.getElementById('aprValue'),
     amortizationBody: document.getElementById('amortizationBody'),
 
@@ -97,8 +97,16 @@ const elements = {
     gracePaymentToggle: document.getElementById('gracePaymentToggle'),
     gracePaymentValue: document.getElementById('gracePaymentValue'),
 
-    // Open in new tab
-    openNewTab: document.getElementById('openNewTab')
+    // Details toggle
+    detailsToggle: document.getElementById('detailsToggle'),
+    detailsToggleIcon: document.getElementById('detailsToggleIcon'),
+    detailsContainer: document.getElementById('detailsContainer'),
+
+    // Fullscreen modal
+    fullscreenModal: document.getElementById('fullscreenModal'),
+    fullscreenTitle: document.getElementById('fullscreenTitle'),
+    fullscreenBody: document.getElementById('fullscreenBody'),
+    fullscreenClose: document.getElementById('fullscreenClose')
 };
 
 // Initialize application
@@ -213,6 +221,21 @@ function setupEventListeners() {
         });
     }
 
+    // Details toggle (show/hide total payment & interest)
+    if (elements.detailsToggle) {
+        elements.detailsToggle.addEventListener('click', () => {
+            const container = elements.detailsContainer;
+            const icon = elements.detailsToggleIcon;
+            if (container.style.display === 'none') {
+                container.style.display = 'grid';
+                icon.textContent = '−';
+            } else {
+                container.style.display = 'none';
+                icon.textContent = '+';
+            }
+        });
+    }
+
     // Share dropdown toggle
     if (elements.shareDropdownBtn) {
         elements.shareDropdownBtn.addEventListener('click', (e) => {
@@ -287,6 +310,27 @@ function setupEventListeners() {
         });
     }
 
+    // Fullscreen buttons
+    document.querySelectorAll('.btn-fullscreen').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.dataset.target;
+            openFullscreen(target);
+        });
+    });
+
+    // Fullscreen close
+    if (elements.fullscreenClose) {
+        elements.fullscreenClose.addEventListener('click', closeFullscreen);
+    }
+
+    if (elements.fullscreenModal) {
+        elements.fullscreenModal.addEventListener('click', (e) => {
+            if (e.target === elements.fullscreenModal) {
+                closeFullscreen();
+            }
+        });
+    }
+
     // Payment method change
     elements.paymentMethod.addEventListener('change', () => {
         updateMonthlyPaymentLabel();
@@ -310,13 +354,6 @@ function setupEventListeners() {
             calculate();
         }
     });
-
-    // Open in new tab button
-    if (elements.openNewTab) {
-        elements.openNewTab.addEventListener('click', () => {
-            chrome.tabs.create({ url: chrome.runtime.getURL('popup.html') });
-        });
-    }
 
     // Add thousand separator formatting to amount input
     if (elements.loanAmount) {
@@ -587,7 +624,7 @@ function displayResults(results) {
 
     elements.totalPaymentValue.textContent = i18n.formatCurrency(results.totalPayment);
     elements.totalInterestValue.textContent = i18n.formatCurrency(results.totalInterest);
-    elements.totalCostValue.textContent = i18n.formatCurrency(results.totalCost);
+    // totalCostValue removed - field no longer exists
 
     if (elements.aprValue) {
         elements.aprValue.textContent = i18n.formatPercent(results.apr);
@@ -887,6 +924,144 @@ function openChartModal(type) {
 
 function closeChartModal() {
     elements.chartModal.classList.remove('active');
+}
+
+// Fullscreen modal functions
+let fullscreenChart = null;
+
+function openFullscreen(target) {
+    if (!elements.fullscreenModal) return;
+
+    const body = elements.fullscreenBody;
+    body.innerHTML = '';
+
+    if (target === 'paymentChartFull') {
+        elements.fullscreenTitle.textContent = i18n.t('paymentChart');
+        const canvas = document.createElement('canvas');
+        canvas.id = 'paymentChartFull';
+        body.appendChild(canvas);
+
+        // Create enlarged chart
+        const ctx = canvas.getContext('2d');
+        if (fullscreenChart) fullscreenChart.destroy();
+        fullscreenChart = createPaymentChartCopy(ctx);
+
+    } else if (target === 'balanceChartFull') {
+        elements.fullscreenTitle.textContent = i18n.t('balanceChart');
+        const canvas = document.createElement('canvas');
+        canvas.id = 'balanceChartFull';
+        body.appendChild(canvas);
+
+        // Create enlarged chart
+        const ctx = canvas.getContext('2d');
+        if (fullscreenChart) fullscreenChart.destroy();
+        fullscreenChart = createBalanceChartCopy(ctx);
+
+    } else if (target === 'tableFull') {
+        elements.fullscreenTitle.textContent = i18n.t('amortizationSchedule');
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'table-scroll';
+        tableContainer.innerHTML = document.getElementById('amortizationTable').outerHTML;
+        body.appendChild(tableContainer);
+    }
+
+    elements.fullscreenModal.classList.add('active');
+}
+
+function closeFullscreen() {
+    if (!elements.fullscreenModal) return;
+    elements.fullscreenModal.classList.remove('active');
+    if (fullscreenChart) {
+        fullscreenChart.destroy();
+        fullscreenChart = null;
+    }
+}
+
+function createPaymentChartCopy(ctx) {
+    if (!currentResults) return null;
+
+    const schedule = currentResults.schedule;
+    const labels = schedule.map(item => item.period);
+    const payments = schedule.map(item => item.payment);
+
+    return new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: i18n.t('paymentAmount'),
+                data: payments,
+                borderColor: 'rgb(67, 97, 238)',
+                backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: value => i18n.formatCurrency(value)
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createBalanceChartCopy(ctx) {
+    if (!currentResults) return null;
+
+    const schedule = currentResults.schedule;
+    const labels = schedule.map(item => item.period);
+    const cumulativePrincipal = schedule.map(item => item.cumulativePrincipal);
+    const cumulativeInterest = schedule.map(item => item.cumulativeInterest);
+
+    return new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: i18n.t('principalPaid'),
+                    data: cumulativePrincipal,
+                    borderColor: 'rgb(16, 185, 129)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.1
+                },
+                {
+                    label: i18n.t('interestPaid'),
+                    data: cumulativeInterest,
+                    borderColor: 'rgb(245, 158, 11)',
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    fill: true,
+                    tension: 0.1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: value => i18n.formatCurrency(value)
+                    }
+                }
+            }
+        }
+    });
 }
 
 function updatePeriodDetails(period) {

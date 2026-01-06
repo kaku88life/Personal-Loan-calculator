@@ -45,7 +45,7 @@ const translations = {
         // Results
         results: '計算結果',
         monthlyPayment: '每月還款金額',
-        monthlyPaymentRange: '每月還款金額（首期/末期）',
+        monthlyPaymentRange: '每月還款金額',
         monthlyPaymentGrace: '寬限期月付',
         totalPayment: '總還款金額',
         totalInterest: '總利息',
@@ -142,7 +142,7 @@ const translations = {
         // Results
         results: 'Results',
         monthlyPayment: 'Monthly Payment',
-        monthlyPaymentRange: 'Monthly Payment (First/Last)',
+        monthlyPaymentRange: 'Monthly Payment',
         monthlyPaymentGrace: 'Grace Period Payment',
         totalPayment: 'Total Payment',
         totalInterest: 'Total Interest',
@@ -239,7 +239,7 @@ const translations = {
         // Results
         results: '計算結果',
         monthlyPayment: '月々の返済額',
-        monthlyPaymentRange: '月々の返済額（初回/最終）',
+        monthlyPaymentRange: '月々の返済額',
         monthlyPaymentGrace: '据置期間中の月額',
         totalPayment: '総返済額',
         totalInterest: '総利息',
