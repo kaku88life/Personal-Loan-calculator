@@ -480,7 +480,7 @@ async function downloadPDF(schedule, summary, i18nInstance, fontName = 'YuPearl-
     y += 8;
     doc.text(`${i18nInstance.t('loanRatio')}: ${summary.loanRatio}%`, 14, y);
     y += 8;
-    doc.text(`${i18nInstance.t('interestRate')}: ${summary.annualRate}%`, 14, y);
+    doc.text(`${i18nInstance.t('interestRate')}: ${summary.annualRate.toFixed(2)}%`, 14, y);
     y += 8;
     doc.text(`${i18nInstance.t('loanTerm')}: ${summary.termYears} ${i18nInstance.t('years')}`, 14, y);
     y += 8;
