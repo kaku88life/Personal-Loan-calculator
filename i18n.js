@@ -82,6 +82,7 @@ const translations = {
 
         // Footer
         footer: '© 2026 個人貸款模擬試算',
+        disclaimer: '本工具僅供參考，實際貸款條件請以金融機構公告為準',
 
         // Alerts
         alertFillFields: '請填寫所有必要欄位',
@@ -183,6 +184,7 @@ const translations = {
 
         // Footer
         footer: '© 2026 Loan Calculator',
+        disclaimer: 'This tool is for reference only. Please refer to financial institutions for actual Terms and conditions.',
 
         // Alerts
         alertFillFields: 'Please fill in all required fields',
@@ -284,6 +286,7 @@ const translations = {
 
         // Footer
         footer: '© 2026 ローン計算機',
+        disclaimer: 'このツールは参考用です。実際のローン条件については金融機関にお問い合わせください',
 
         // Alerts
         alertFillFields: 'すべての必須項目を入力してください',
