@@ -1530,6 +1530,22 @@ tbody tr.grace-period td {
 
     .input-section {
         position: static;
+        padding: 20px;
+    }
+
+    /* 確保所有表單組寬度一致 */
+    .form-group {
+        width: 100%;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+    }
+
+    /* 確保貸款金額欄位與其他欄位寬度一致 */
+    .input-with-unit {
+        width: 100%;
     }
 
     .summary-cards {
@@ -1575,6 +1591,37 @@ tbody tr.grace-period td {
 
     .header h1 {
         font-size: 1.4rem;
+    }
+
+    .input-section {
+        padding: 16px;
+    }
+
+    /* 確保所有表單組在小螢幕上寬度一致 */
+    .form-group {
+        width: 100%;
+        margin-bottom: 16px;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 10px 12px;
+    }
+
+    /* 確保貸款金額欄位在小螢幕上寬度一致 */
+    .input-with-unit {
+        width: 100%;
+        display: flex;
+    }
+
+    .input-with-unit input {
+        flex: 1;
+    }
+
+    .input-with-unit .unit {
+        min-width: 60px;
+        padding: 10px 12px;
     }
 
     .summary-cards {
@@ -1644,7 +1691,9 @@ input[type="number"]::-webkit-outer-spin-button {
         background: white;
         color: black;
     }
-}/* Cost Modal Styles */
+}
+
+/* Cost Modal Styles */
 .cost-modal-overlay {
     position: fixed;
     top: 0;

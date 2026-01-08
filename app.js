@@ -10,7 +10,7 @@ let currentSummary = null;
 
 // Theme settings
 const themes = ['light', 'dark', 'night'];
-const themeIcons = { light: '🌤️', dark: '🌙', night: '🌃' };
+const themeIcons = { light: '🌤️', dark: '🌙', night: '⭐' };
 let currentThemeIndex = 0;
 
 // Default loan terms by type (in years)
