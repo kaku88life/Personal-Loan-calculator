@@ -1526,12 +1526,32 @@ tbody tr.grace-period td {
 /* Responsive */
 @media (max-width: 768px) {
     .header {
-        flex-direction: column;
-        text-align: center;
+        flex-direction: row;
+        /* 改為橫向排列 */
+        justify-content: space-between;
+        /* 左右分散對齊 */
+        align-items: center;
+        text-align: left;
+        /* 標題靠左 */
+        padding: 20px;
+        /* 與 input-section 一致 */
+        flex-wrap: nowrap;
+        /* 不換行 */
+    }
+
+    .header h1 {
+        font-size: 1.3rem;
+        /* 縮小字體以適應並排 */
+        margin: 0;
     }
 
     .header-controls {
-        justify-content: center;
+        justify-content: flex-end;
+        /* 按鈕靠右 */
+        flex-wrap: nowrap;
+        /* 按鈕不換行 */
+        gap: 8px;
+        /* 縮小按鈕間距 */
     }
 
     .input-section {
@@ -1602,11 +1622,16 @@ tbody tr.grace-period td {
     }
 
     .header {
-        padding: 16px;
+        padding: 18px;
+        /* 與 input-section 一致 */
+        gap: 8px;
+        /* 縮小間距 */
     }
 
     .header h1 {
-        font-size: 1.4rem;
+        font-size: 1.1rem;
+        /* 進一步縮小以適應小螢幕 */
+        line-height: 1.2;
     }
 
     .input-section {
