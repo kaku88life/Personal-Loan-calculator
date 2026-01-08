@@ -1038,9 +1038,10 @@ html {
 .btn-magnify {
     width: 36px;
     height: 36px;
-    border: none;
+    border: 2px solid var(--border-color);
     border-radius: 50%;
-    background: var(--bg-primary);
+    background: var(--bg-card);
+    color: var(--text-primary);
     font-size: 1.1rem;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -1051,6 +1052,8 @@ html {
 
 .btn-magnify:hover {
     background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
     transform: scale(1.1);
 }
 
@@ -1062,9 +1065,10 @@ html {
 .btn-expand {
     width: 36px;
     height: 36px;
-    border: none;
+    border: 2px solid var(--border-color);
     border-radius: 50%;
-    background: var(--bg-primary);
+    background: var(--bg-card);
+    color: var(--text-primary);
     font-size: 1.1rem;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -1075,6 +1079,8 @@ html {
 
 .btn-expand:hover {
     background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
     transform: scale(1.1);
 }
 
@@ -1533,9 +1539,19 @@ tbody tr.grace-period td {
         padding: 20px;
     }
 
-    /* 確保所有表單組寬度一致 */
+    /* 確保區塊標題不超出邊界 */
+    .section-header {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    /* 確保所有表單組寬度一致，並移除額外的 padding */
     .form-group {
         width: 100%;
+        padding-left: 0;
+        padding-right: 0;
+        margin-left: 0;
+        margin-right: 0;
     }
 
     .form-group input,
@@ -1594,13 +1610,25 @@ tbody tr.grace-period td {
     }
 
     .input-section {
-        padding: 16px;
+        padding: 18px;
+    }
+
+    /* 確保區塊標題在小螢幕上不超出邊界 */
+    .section-header {
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 0;
+        padding-right: 0;
     }
 
     /* 確保所有表單組在小螢幕上寬度一致 */
     .form-group {
         width: 100%;
         margin-bottom: 16px;
+        padding-left: 0;
+        padding-right: 0;
+        margin-left: 0;
+        margin-right: 0;
     }
 
     .form-group input,
@@ -1622,6 +1650,16 @@ tbody tr.grace-period td {
     .input-with-unit .unit {
         min-width: 60px;
         padding: 10px 12px;
+    }
+
+    /* 確保成本區塊也一致 */
+    .costs-section {
+        padding: 14px;
+    }
+
+    /* 確保寬限期區塊也一致 */
+    .grace-period-group {
+        padding: 14px;
     }
 
     .summary-cards {
