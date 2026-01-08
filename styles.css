@@ -748,6 +748,8 @@ html {
     border-radius: var(--border-radius);
     padding: 24px;
     box-shadow: var(--shadow);
+    display: none;
+    /* 初始隱藏，計算後才顯示 */
 }
 
 .results-header {
