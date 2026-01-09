@@ -120,6 +120,9 @@ const elements = {
 
 // Initialize application
 function init() {
+    // Show language selector for first-time visitors
+    showLanguageSelector();
+
     // Load saved preferences
     loadPreferences();
 
@@ -132,6 +135,73 @@ function init() {
 
     // Update monthly payment label based on payment method
     updateMonthlyPaymentLabel();
+}
+
+// Show language selection modal for first-time visitors
+function showLanguageSelector() {
+    const savedLang = localStorage.getItem('loanCalc_language');
+
+    // If language preference exists, skip the selector
+    if (savedLang) {
+        return;
+    }
+
+    // Detect browser language
+    const browserLang = navigator.language || navigator.userLanguage;
+    let suggestedLang = 'zh'; // Default to Traditional Chinese
+    if (browserLang.startsWith('en')) suggestedLang = 'en';
+    else if (browserLang.startsWith('ja')) suggestedLang = 'ja';
+
+    // Create and show modal
+    const modal = createLanguageModal(suggestedLang);
+    document.body.appendChild(modal);
+}
+
+function createLanguageModal(suggestedLang) {
+    const overlay = document.createElement('div');
+    overlay.className = 'language-modal-overlay';
+    overlay.innerHTML = `
+        <div class="language-modal">
+            <h2>選擇語言 / Select Language / 言語を選択</h2>
+            <div class="language-options">
+                <button class="lang-btn ${suggestedLang === 'zh' ? 'suggested' : ''}" data-lang="zh">
+                    <span class="lang-flag">🇹🇼</span>
+                    <span class="lang-name">繁體中文</span>
+                    ${suggestedLang === 'zh' ? '<span class="lang-hint">推薦</span>' : ''}
+                </button>
+                <button class="lang-btn ${suggestedLang === 'en' ? 'suggested' : ''}" data-lang="en">
+                    <span class="lang-flag">🇬🇧</span>
+                    <span class="lang-name">English</span>
+                    ${suggestedLang === 'en' ? '<span class="lang-hint">Recommended</span>' : ''}
+                </button>
+                <button class="lang-btn ${suggestedLang === 'ja' ? 'suggested' : ''}" data-lang="ja">
+                    <span class="lang-flag">🇯🇵</span>
+                    <span class="lang-name">日本語</span>
+                    ${suggestedLang === 'ja' ? '<span class="lang-hint">おすすめ</span>' : ''}
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Bind click events
+    const buttons = overlay.querySelectorAll('.lang-btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const lang = btn.dataset.lang;
+            selectLanguage(lang);
+            overlay.remove();
+        });
+    });
+
+    return overlay;
+}
+
+function selectLanguage(lang) {
+    i18n.setLanguage(lang);
+    if (elements.languageSelect) {
+        elements.languageSelect.value = lang;
+    }
+    localStorage.setItem('loanCalc_language', lang);
 }
 
 // Load saved preferences from localStorage
