@@ -1351,6 +1351,28 @@ html {
     border: 1px solid var(--border-color);
     max-height: 400px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* iOS 平滑滾動 */
+}
+
+/* 美化滾動條（Webkit 瀏覽器）*/
+.table-scroll::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+    border-radius: 4px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-color);
 }
 
 table {
@@ -1358,6 +1380,8 @@ table {
     border-collapse: collapse;
     font-size: 0.9rem;
     table-layout: fixed;
+    min-width: 800px;
+    /* 確保表格不會被壓縮，可以水平滾動 */
 }
 
 th,
@@ -1953,7 +1977,9 @@ input[type="number"]::-webkit-outer-spin-button {
     font-size: 0.85rem;
     color: var(--text-muted);
     font-style: italic;
-}/* Language Selection Modal */
+}
+
+/* Language Selection Modal */
 .language-modal-overlay {
     position: fixed;
     top: 0;

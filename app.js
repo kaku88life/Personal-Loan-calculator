@@ -170,7 +170,7 @@ function createLanguageModal(suggestedLang) {
                     ${suggestedLang === 'zh' ? '<span class="lang-hint">推薦</span>' : ''}
                 </button>
                 <button class="lang-btn ${suggestedLang === 'en' ? 'suggested' : ''}" data-lang="en">
-                    <span class="lang-flag">🇬🇧</span>
+                    <span class="lang-flag">🇺🇸</span>
                     <span class="lang-name">English</span>
                     ${suggestedLang === 'en' ? '<span class="lang-hint">Recommended</span>' : ''}
                 </button>
