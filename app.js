@@ -42,6 +42,17 @@ const elements = {
     customLoanType: document.getElementById('customLoanType'),
     loanAmount: document.getElementById('loanAmount'),
     loanRatio: document.getElementById('loanRatio'),
+    // Charts
+    paymentChart: document.getElementById('paymentChart'),
+    balanceChart: document.getElementById('balanceChart'),
+
+    // Result details
+    monthlyPaymentFirst: document.getElementById('monthlyPaymentFirst'),
+    monthlyPaymentLast: document.getElementById('monthlyPaymentLast'),
+    totalInterest: document.getElementById('totalInterest'),
+    totalCost: document.getElementById('totalCost'),
+    totalEffect: document.getElementById('totalEffect'), // Only in DE?
+    principalAmount: document.getElementById('principalAmount'),
     loanTerm: document.getElementById('loanTerm'),
     gracePeriod: document.getElementById('gracePeriod'),
     gracePeriodToggle: document.getElementById('gracePeriodToggle'),
@@ -529,21 +540,71 @@ function updateMonthlyPaymentLabel() {
 }
 
 // Add cost item with modal dialog
+// Add cost item with modal dialog
 function addCostItem() {
     // Create modal dialog
     const modal = document.createElement('div');
     modal.className = 'cost-modal-overlay';
+
+    // Default values from main loan
+    const mainRate = elements.interestRate ? elements.interestRate.value : '2.0';
+    const mainTerm = elements.loanTerm ? elements.loanTerm.value : '30';
+
     modal.innerHTML = `
         <div class="cost-modal">
-            <h3>新增費用項目</h3>
+            <h3>${i18n.t('additionalCosts')}</h3>
             <div class="cost-modal-body">
                 <div class="form-group">
-                    <label>項目名稱</label>
-                    <input type="text" id="costNameInput" class="cost-modal-input" placeholder="例如：手續費、代書費" autofocus>
+                    <label>${i18n.t('costNamePlaceholder')}</label>
+                    <input type="text" id="costNameInput" class="cost-modal-input" placeholder="${i18n.t('costNamePlaceholder')}" autofocus>
                 </div>
                 <div class="form-group">
-                    <label>金額</label>
-                    <input type="number" id="costAmountInput" class="cost-modal-input" placeholder="請輸入金額" min="0" step="100">
+                    <label>${i18n.t('costAmountPlaceholder')}</label>
+                    <input type="text" id="costAmountInput" class="cost-modal-input" placeholder="0" inputmode="numeric">
+                </div>
+
+                <div class="cost-payment-mode">
+                    <label>${i18n.t('costPaymentMode')}</label>
+                    <div class="mode-options">
+                        <div class="mode-option selected" data-value="upfront">
+                            ${i18n.t('costOneTime')}
+                        </div>
+                        <div class="mode-option" data-value="financed">
+                             ${i18n.t('costFinanced')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cost Type Selection (Related vs Unrelated) -->
+                 <div class="form-group" style="margin-top: 12px;">
+                    <label>${i18n.t('costType')}</label>
+                    <div class="toggle-group" style="display: flex; gap: 8px;">
+                         <div class="type-option selected" data-value="related" style="flex: 1; padding: 8px; border: 1px solid var(--border-color); text-align: center; border-radius: var(--border-radius); cursor: pointer; background: var(--bg-secondary); transition: all 0.2s;">
+                             <span style="font-size: 0.8rem;">${i18n.t('costRelated')}</span>
+                         </div>
+                         <div class="type-option" data-value="unrelated" style="flex: 1; padding: 8px; border: 1px solid var(--border-color); text-align: center; border-radius: var(--border-radius); cursor: pointer; background: var(--bg-secondary); transition: all 0.2s;">
+                             <span style="font-size: 0.8rem;">${i18n.t('costUnrelated')}</span>
+                         </div>
+                    </div>
+                </div>
+
+                <div class="cost-finance-details" id="costFinanceDetails">
+                    <div class="form-group">
+                         <label>${i18n.t('costFinancedRate')}</label>
+                         <input type="number" id="costRateInput" class="cost-modal-input" value="${mainRate}" step="0.01">
+                    </div>
+                    <div class="form-group">
+                         <label>${i18n.t('costFinancedTerm')} (${i18n.t('years')})</label>
+                         <input type="number" id="costTermInput" class="cost-modal-input" value="${mainTerm}" step="1">
+                    </div>
+                    <div class="form-group">
+                         <label>${i18n.t('costLoanRatio')}</label>
+                         <input type="number" id="costRatioInput" class="cost-modal-input" value="100" max="100" min="0" step="1">
+                    </div>
+                    <div class="form-group">
+                         <label>${i18n.t('costGracePeriod')} (${i18n.t('years')})</label>
+                         <input type="number" id="costGraceInput" class="cost-modal-input" value="0" min="0" step="1">
+                    </div>
                 </div>
             </div>
             <div class="cost-modal-footer">
@@ -557,11 +618,86 @@ function addCostItem() {
 
     const nameInput = modal.querySelector('#costNameInput');
     const amountInput = modal.querySelector('#costAmountInput');
+    const rateInput = modal.querySelector('#costRateInput');
+    const termInput = modal.querySelector('#costTermInput');
+    const ratioInput = modal.querySelector('#costRatioInput');
+    const graceInput = modal.querySelector('#costGraceInput');
     const confirmBtn = modal.querySelector('.btn-confirm');
     const cancelBtn = modal.querySelector('.btn-cancel');
+    const financeDetails = modal.querySelector('#costFinanceDetails');
+    const modeOptions = modal.querySelectorAll('.mode-option');
+    const typeOptions = modal.querySelectorAll('.type-option');
+    let currentMode = 'upfront';
+    let currentType = 'related';
 
     // Focus on name input
     setTimeout(() => nameInput.focus(), 100);
+
+    // Format amount input with thousand separators
+    amountInput.addEventListener('input', (e) => {
+        // Remove non-numeric chars except dot
+        let value = e.target.value.replace(/[^\d.]/g, '');
+
+        // Handle multiple dots
+        const parts = value.split('.');
+        if (parts.length > 2) {
+            value = parts[0] + '.' + parts.slice(1).join('');
+        }
+
+        // Add thousand separators to integer part
+        if (value) {
+            const integerPart = parts[0];
+            const decimalPart = parts.length > 1 ? '.' + parts[1] : '';
+
+            const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            e.target.value = formattedInteger + decimalPart;
+        }
+    });
+
+    // Toggle Mode
+    modeOptions.forEach(opt => {
+        opt.addEventListener('click', () => {
+            modeOptions.forEach(o => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            currentMode = opt.dataset.value;
+            if (currentMode === 'financed') {
+                financeDetails.classList.add('active');
+            } else {
+                financeDetails.classList.remove('active');
+            }
+        });
+    });
+
+    // Toggle Type
+    typeOptions.forEach(opt => {
+        opt.addEventListener('click', () => {
+            typeOptions.forEach(o => {
+                o.classList.remove('selected');
+                o.style.borderColor = 'var(--border-color)';
+                o.style.backgroundColor = 'var(--bg-secondary)';
+                o.style.color = 'var(--text-primary)';
+            });
+            opt.classList.add('selected');
+            opt.style.borderColor = 'var(--accent-color)';
+            opt.style.backgroundColor = 'var(--accent-color)';
+            opt.style.color = 'white';
+            currentType = opt.dataset.value;
+        });
+    });
+
+    // Initialize first type option style
+    const selectedType = modal.querySelector('.type-option.selected');
+    if (selectedType) {
+        selectedType.style.borderColor = 'var(--accent-color)';
+        selectedType.style.backgroundColor = 'var(--accent-color)';
+        selectedType.style.color = 'white';
+    }
+
+    // Enhance new number inputs
+    [rateInput, termInput, ratioInput, graceInput].forEach(input => {
+        // Wait for them to be visible/in DOM properly
+        setTimeout(() => enhanceToNumberInput(input), 0);
+    });
 
     // Close modal function
     const closeModal = () => {
@@ -571,40 +707,79 @@ function addCostItem() {
     // Cancel button
     cancelBtn.addEventListener('click', closeModal);
 
-    // Click outside to close
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
+    // Click outside to close - DISABLED per user request
+    // modal.addEventListener('click', (e) => {
+    //    if (e.target === modal) closeModal();
+    // });
 
     // Confirm button - add cost to list
     const confirmAdd = () => {
         const name = nameInput.value.trim();
-        const amount = parseFloat(amountInput.value);
+        // Amount is parsed later to handle commas
+        const rate = parseFloat(rateInput.value);
+        const term = parseFloat(termInput.value);
+        const ratio = parseFloat(ratioInput.value);
+        const grace = parseFloat(graceInput.value);
 
         if (!name) {
-            alert('請輸入項目名稱');
+            alert(i18n.t('costNamePlaceholder') || '請輸入項目名稱');
             nameInput.focus();
             return;
         }
 
+        // Parse amount (remove commas)
+        const rawAmount = amountInput.value.replace(/,/g, '');
+        const amount = parseFloat(rawAmount);
+
         if (isNaN(amount) || amount <= 0) {
-            alert('請輸入有效的金額');
+            alert(i18n.t('alertInvalidAmount') || '請輸入有效的金額');
             amountInput.focus();
             return;
+        }
+
+        // Validate finance details
+        if (currentMode === 'financed') {
+            if (isNaN(rate) || rate < 0) {
+                alert(i18n.t('alertInvalidRate') || '請輸入有效的利率');
+                rateInput.focus();
+                return;
+            }
+            if (isNaN(term) || term <= 0) {
+                alert(i18n.t('alertInvalidTerm') || '請輸入有效的年限');
+                termInput.focus();
+                return;
+            }
         }
 
         // Create cost item in list
         const costItem = document.createElement('div');
         costItem.className = 'cost-item';
+
+        // Badge for financed items
+        const badgeHtml = currentMode === 'financed'
+            ? `<span class="payment-mode-badge financed" data-i18n="costFinanced">${i18n.t('costFinanced')}</span>`
+            : '';
+
         costItem.innerHTML = `
-            <span class="cost-name">${name}</span>
-            <span class="cost-amount">NT$ ${amount.toLocaleString()}</span>
+            <div style="flex: 1; display: flex; align-items: center; gap: 8px;">
+                <span class="cost-name">${name}</span>
+                ${badgeHtml}
+            </div>
+            <span class="cost-amount">${i18n.getCurrencySymbol()} ${amount.toLocaleString()}</span>
             <button type="button" class="btn-remove" onclick="removeCostItem(this)">&times;</button>
         `;
 
         // Store data in element for calculation
         costItem.dataset.name = name;
         costItem.dataset.amount = amount;
+        costItem.dataset.mode = currentMode;
+        if (currentMode === 'financed') {
+            costItem.dataset.rate = rate;
+            costItem.dataset.term = term;
+            costItem.dataset.loanRatio = ratio;
+            costItem.dataset.gracePeriod = grace;
+        }
+        costItem.dataset.type = currentType;
 
         elements.costsContainer.appendChild(costItem);
         updateTotalCosts();
@@ -613,12 +788,84 @@ function addCostItem() {
 
     confirmBtn.addEventListener('click', confirmAdd);
 
-    // Enter key to confirm
-    [nameInput, amountInput].forEach(input => {
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') confirmAdd();
-        });
+    // Handle Enter key on inputs
+    const handleKeydown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            confirmAdd();
+        }
+    };
+
+    [nameInput, amountInput, rateInput, termInput, ratioInput, graceInput].forEach(input => {
+        input.addEventListener('keydown', handleKeydown);
     });
+}
+
+// Custom Confirm Modal
+function showConfirmModal(title, message, onConfirm) {
+    const modal = document.createElement('div');
+    modal.className = 'cost-modal-overlay'; // Reuse overlay style
+    modal.style.zIndex = '10002'; // Ensure it's on top
+
+    modal.innerHTML = `
+        <div class="cost-modal" style="max-width: 400px;">
+            <h3>${title}</h3>
+            <div class="cost-modal-body">
+                <p style="margin: 0; color: var(--text-primary); font-size: 1.05rem;">${message}</p>
+            </div>
+            <div class="cost-modal-footer">
+                <button type="button" class="btn-cancel">取消</button>
+                <button type="button" class="btn-confirm">確認</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const confirmBtn = modal.querySelector('.btn-confirm');
+    const cancelBtn = modal.querySelector('.btn-cancel');
+
+    const closeModal = () => {
+        modal.classList.add('fade-out'); // Optional: Add fade out class if styles exist
+        setTimeout(() => modal.remove(), 200);
+    };
+
+    confirmBtn.addEventListener('click', () => {
+        onConfirm();
+        closeModal();
+    });
+
+    cancelBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    // Handle Enter and Escape keys
+    const handleKeydown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation(); // Stop propagation to prevent triggering background elements
+            onConfirm();
+            cleanup();
+            closeModal();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cleanup();
+            closeModal();
+        }
+    };
+
+    const cleanup = () => {
+        document.removeEventListener('keydown', handleKeydown);
+    };
+
+    // Add keydown listener
+    document.addEventListener('keydown', handleKeydown);
+
+    // Focus confirm button by default so Enter works naturally even without the listener (as a backup)
+    // and to ensure focus is trapped/handled correctly
+    setTimeout(() => confirmBtn.focus(), 50);
 }
 
 // Remove cost item
@@ -633,62 +880,75 @@ function removeCostItem(button) {
 
 // Reset form to default values
 function resetForm() {
-    // Confirm with user
-    if (!confirm(i18n.t('confirmReset') || '確定要重置所有輸入嗎？')) {
-        return;
-    }
+    showConfirmModal(
+        i18n.t('reset') || '重置',
+        i18n.t('confirmReset') || '確定要重置所有輸入嗎？',
+        () => {
+            // Reset loan type
+            elements.loanTypeSelect.value = 'mortgage';
+            elements.customLoanType.classList.add('hidden');
 
-    // Reset loan type
-    elements.loanTypeSelect.value = 'mortgage';
-    elements.customLoanType.classList.add('hidden');
+            // Reset loan amount (with thousand separator)
+            elements.loanAmount.value = formatWithThousandSeparator(10000000);  // 改為 1000 萬
 
-    // Reset loan amount (with thousand separator)
-    elements.loanAmount.value = formatWithThousandSeparator(10000000);  // 改為 1000 萬
+            // Reset loan ratio, term, and rate
+            elements.loanRatio.value = '80';
+            elements.loanTerm.value = '30';
+            elements.interestRate.value = '2.5';  // 改為 2.5%
 
-    // Reset loan ratio, term, and rate
-    elements.loanRatio.value = '80';
-    elements.loanTerm.value = '30';
-    elements.interestRate.value = '2.5';  // 改為 2.5%
+            // Reset grace period
+            if (elements.gracePeriodToggle) {
+                elements.gracePeriodToggle.checked = false;
+                elements.gracePeriodInputs.classList.remove('active');
+            }
+            if (elements.gracePeriod) {
+                elements.gracePeriod.value = '1';
+            }
+            if (elements.gracePeriodUnit) {
+                elements.gracePeriodUnit.value = 'years';
+            }
 
-    // Reset grace period
-    if (elements.gracePeriodToggle) {
-        elements.gracePeriodToggle.checked = false;
-        elements.gracePeriodInputs.classList.remove('active');
-    }
-    if (elements.gracePeriod) {
-        elements.gracePeriod.value = '1';
-    }
-    if (elements.gracePeriodUnit) {
-        elements.gracePeriodUnit.value = 'years';
-    }
+            // Reset payment method
+            elements.paymentMethod.value = 'equalPayment';
 
-    // Reset payment method
-    elements.paymentMethod.value = 'equalPayment';
+            // Clear all cost items
+            elements.costsContainer.innerHTML = '';
+            updateTotalCosts();
 
-    // Clear all cost items
-    elements.costsContainer.innerHTML = '';
-    updateTotalCosts();
+            // Hide results section
+            if (elements.resultsSection) {
+                elements.resultsSection.style.display = 'none';
+            }
 
-    // Hide results section
-    if (elements.resultsSection) {
-        elements.resultsSection.style.display = 'none';
-    }
+            // Clear current results
+            currentResults = null;
+            currentSummary = null;
 
-    // Clear current results
-    currentResults = null;
-    currentSummary = null;
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    console.log('Form reset to default values');
+            console.log('Form reset to default values');
+        }
+    );
 }
 
 // Update total additional costs display
 function updateTotalCosts() {
     const costs = getAdditionalCosts();
-    const total = costs.reduce((sum, cost) => sum + cost.amount, 0);
-    elements.totalCostsValue.textContent = i18n.formatCurrency(total);
+    const upfrontTotal = costs
+        .filter(c => c.mode !== 'financed')
+        .reduce((sum, cost) => sum + cost.amount, 0);
+
+    const financedTotal = costs
+        .filter(c => c.mode === 'financed')
+        .reduce((sum, cost) => sum + cost.amount, 0);
+
+    let text = i18n.formatCurrency(upfrontTotal);
+    if (financedTotal > 0) {
+        text += ` + ${i18n.formatCurrency(financedTotal)} (${i18n.t('costFinanced')})`;
+    }
+
+    elements.totalCostsValue.textContent = text;
 }
 
 // Get additional costs from inputs
@@ -699,9 +959,15 @@ function getAdditionalCosts() {
     costItems.forEach(item => {
         const name = item.dataset.name;
         const amount = parseFloat(item.dataset.amount);
+        const mode = item.dataset.mode || 'upfront';
+        const type = item.dataset.type || 'related';
+        const rate = parseFloat(item.dataset.rate || 0);
+        const term = parseFloat(item.dataset.term || 0);
+        const loanRatio = parseFloat(item.dataset.loanRatio || 100);
+        const gracePeriod = parseFloat(item.dataset.gracePeriod || 0);
 
         if (name && !isNaN(amount) && amount > 0) {
-            costs.push({ name, amount });
+            costs.push({ name, amount, mode, type, rate, term, loanRatio, gracePeriod });
         }
     });
 
@@ -880,6 +1146,12 @@ function displayResults(results) {
     if (elements.aprValue) {
         elements.aprValue.textContent = i18n.formatPercent(results.apr);
     }
+
+    // Total Down Payment
+    const totalDownPaymentValue = document.getElementById('totalDownPaymentValue');
+    if (totalDownPaymentValue) {
+        totalDownPaymentValue.textContent = i18n.formatCurrency(results.totalDownPayment);
+    }
 }
 
 // Update grace payment display based on toggle state
@@ -917,9 +1189,13 @@ function updateCharts(results) {
                 borderColor: colors.accent,
                 backgroundColor: colors.accent + '20',
                 fill: true,
+                fill: true,
                 stepped: true,  // 階梯狀：寬限期與還款期之間垂直90度變化，期間內水平
-                pointRadius: chartData.labels.length > 60 ? 0 : 3,
-                pointHoverRadius: 5
+                pointStyle: 'rectRot', // Diamond shape
+                pointRadius: 3.5, // Reduced 30% from 5
+                pointHoverRadius: 6, // Slightly enlarged
+                pointBackgroundColor: colors.bg,
+                pointBorderWidth: 2
             }]
         },
         options: {
@@ -979,11 +1255,17 @@ function updateCharts(results) {
                     label: i18n.t('principalPaid'),
                     data: chartData.cumulativePrincipal,
                     borderColor: colors.success,
+                    label: i18n.t('principalPaid'),
+                    data: chartData.cumulativePrincipal,
+                    borderColor: colors.success,
                     backgroundColor: colors.success + '20',
                     fill: true,
                     tension: 0.4,  // 平滑曲線，顯示累計成長
-                    pointRadius: chartData.labels.length > 60 ? 0 : 3,
-                    pointHoverRadius: 5
+                    pointStyle: 'rectRot', // Diamond shape
+                    pointRadius: 3.5, // Reduced 30% from 5
+                    pointHoverRadius: 6, // Slightly enlarged
+                    pointBackgroundColor: colors.bg,
+                    pointBorderWidth: 2
                 },
                 {
                     label: i18n.t('interestPaid'),
@@ -992,8 +1274,11 @@ function updateCharts(results) {
                     backgroundColor: colors.warning + '20',
                     fill: true,
                     tension: 0.4,  // 平滑曲線，顯示累計成長
-                    pointRadius: chartData.labels.length > 60 ? 0 : 3,
-                    pointHoverRadius: 5
+                    pointStyle: 'rectRot', // Diamond shape
+                    pointRadius: 3.5, // Reduced 30% from 5
+                    pointHoverRadius: 6, // Slightly enlarged
+                    pointBackgroundColor: colors.bg,
+                    pointBorderWidth: 2
                 }
             ]
         },
@@ -1376,5 +1661,66 @@ function getChartOptions(colors) {
 // Make removeCostItem available globally
 window.removeCostItem = removeCostItem;
 
+// Enhance number inputs with custom spinners
+function enhanceToNumberInput(input) {
+    if (input.dataset.enhanced) return;
+
+    // Wrap input
+    const wrapper = document.createElement('div');
+    wrapper.className = 'spinner-wrapper';
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
+
+    // Create buttons
+    const btns = document.createElement('div');
+    btns.className = 'spinner-btns';
+    btns.innerHTML = `
+        <button type="button" class="spinner-btn up" tabindex="-1">▲</button>
+        <button type="button" class="spinner-btn down" tabindex="-1">▼</button>
+    `;
+    wrapper.appendChild(btns);
+
+    const btnUp = btns.querySelector('.up');
+    const btnDown = btns.querySelector('.down');
+
+    const step = parseFloat(input.step) || 1;
+    const min = input.min !== '' ? parseFloat(input.min) : -Infinity;
+    const max = input.max !== '' ? parseFloat(input.max) : Infinity;
+
+    const updateValue = (delta) => {
+        let currentVal = parseFloat(input.value) || 0;
+        let newVal = currentVal + delta;
+
+        // Handle floating point precision
+        if (String(step).includes('.')) {
+            const decimals = String(step).split('.')[1].length;
+            newVal = parseFloat(newVal.toFixed(decimals));
+        }
+
+        if (newVal >= min && newVal <= max) {
+            input.value = newVal;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    };
+
+    btnUp.addEventListener('click', (e) => {
+        e.preventDefault();
+        updateValue(step);
+    });
+
+    btnDown.addEventListener('click', (e) => {
+        e.preventDefault();
+        updateValue(-step);
+    });
+
+    input.dataset.enhanced = 'true';
+}
+
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+
+    // Enhance existing number inputs
+    document.querySelectorAll('input[type="number"]').forEach(enhanceToNumberInput);
+});

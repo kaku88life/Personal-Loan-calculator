@@ -37,6 +37,18 @@ const translations = {
         additionalCosts: '額外費用',
         costNamePlaceholder: '費用名目',
         costAmountPlaceholder: '金額',
+        costPaymentMode: '支付方式',
+        costOneTime: '一次付清',
+        costFinanced: '貸款支付',
+        costFinancedRate: '貸款利率 (%)',
+        costFinancedTerm: '貸款年限',
+        costType: '費用性質',
+        costRelated: '貸款相關 (計入總費用年柏率)',
+        costUnrelated: '非相關 (計入自備款)',
+        costGracePeriod: '寬限期',
+        costLoanRatio: '貸款成數 (%)',
+        costLoanAmount: '貸款金額',
+        costUpfrontAmount: '自備金額',
         totalCosts: '總額外費用：',
 
         // Calculate
@@ -44,6 +56,7 @@ const translations = {
 
         // Results
         results: '計算結果',
+        totalDownPayment: '總自備金額',
         monthlyPayment: '每月還款金額',
         monthlyPaymentRange: '每月還款金額（首期/末期）',
         monthlyPaymentGrace: '寬限期月付',
@@ -100,7 +113,8 @@ const translations = {
         currencyName: '台幣',
 
         // Confirm
-        confirmReset: '確定要重置所有輸入嗎？'
+        confirmReset: '確定要重置所有輸入嗎？',
+        reset: '重置'
     },
 
     en: {
@@ -139,6 +153,18 @@ const translations = {
         additionalCosts: 'Additional Costs',
         costNamePlaceholder: 'Cost Name',
         costAmountPlaceholder: 'Amount',
+        costPaymentMode: 'Payment',
+        costOneTime: 'Upfront',
+        costFinanced: 'Financed',
+        costFinancedRate: 'Inte. Rate (%)',
+        costFinancedTerm: 'Term',
+        costType: 'Cost Type',
+        costRelated: 'Loan Related (Included in APR)',
+        costUnrelated: 'Unrelated (Added to Down Payment)',
+        costGracePeriod: 'Grace Period',
+        costLoanRatio: 'Loan Ratio (%)',
+        costLoanAmount: 'Financed Amount',
+        costUpfrontAmount: 'Upfront Amount',
         totalCosts: 'Total Additional Costs:',
 
         // Calculate
@@ -146,6 +172,7 @@ const translations = {
 
         // Results
         results: 'Results',
+        totalDownPayment: 'Total Down Payment',
         monthlyPayment: 'Monthly Payment',
         monthlyPaymentRange: 'Monthly Payment (First/Last)',
         monthlyPaymentGrace: 'Grace Period Payment',
@@ -202,7 +229,8 @@ const translations = {
         currencyName: 'TWD',
 
         // Confirm
-        confirmReset: 'Are you sure you want to reset all inputs?'
+        confirmReset: 'Are you sure you want to reset all inputs?',
+        reset: 'Reset'
     },
 
     ja: {
@@ -241,6 +269,18 @@ const translations = {
         additionalCosts: '追加費用',
         costNamePlaceholder: '費用名',
         costAmountPlaceholder: '金額',
+        costPaymentMode: '支払い方法',
+        costOneTime: '一括払い',
+        costFinanced: 'ローン組込',
+        costFinancedRate: '金利 (%)',
+        costFinancedTerm: '返済期間',
+        costType: '費用区分',
+        costRelated: 'ローン関連 (実質年率込)',
+        costUnrelated: 'その他 (頭金に加算)',
+        costGracePeriod: '据置期間',
+        costLoanRatio: '融資比率 (%)',
+        costLoanAmount: '融資額',
+        costUpfrontAmount: '自己資金',
         totalCosts: '追加費用合計：',
 
         // Calculate
@@ -248,6 +288,7 @@ const translations = {
 
         // Results
         results: '計算結果',
+        totalDownPayment: '総頭金・自己資金',
         monthlyPayment: '月々の返済額',
         monthlyPaymentRange: '月々の返済額（初回/最終）',
         monthlyPaymentGrace: '据置期間中の月額',
@@ -304,7 +345,8 @@ const translations = {
         currencyName: 'JPY',
 
         // Confirm
-        confirmReset: 'すべての入力をリセットしますか？'
+        confirmReset: 'すべての入力をリセットしますか？',
+        reset: 'リセット'
     }
 };
 

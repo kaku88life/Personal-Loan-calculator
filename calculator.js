@@ -25,6 +25,7 @@ class LoanCalculator {
         this.additionalCosts = costs;
     }
 
+    // Get total ALL costs (for display mostly)
     getTotalAdditionalCosts() {
         return this.additionalCosts.reduce((sum, cost) => sum + cost.amount, 0);
     }
@@ -38,27 +39,182 @@ class LoanCalculator {
         const monthlyRate = this.annualRate / 12;
         const totalMonths = this.termYears * 12;
         const graceMonths = Math.min(this.gracePeriodMonths, totalMonths - 1);
-        const repaymentMonths = totalMonths - graceMonths;
 
-        this.schedule = [];
-
+        // 1. Main Loan Calculation
+        let mainResult;
         if (this.paymentMethod === 'equalPayment') {
-            return this.calculateEqualPaymentWithGrace(principal, monthlyRate, totalMonths, graceMonths);
+            mainResult = this.calculateEqualPayment(principal, monthlyRate, totalMonths, graceMonths);
         } else {
-            return this.calculateEqualPrincipalWithGrace(principal, monthlyRate, totalMonths, graceMonths);
+            mainResult = this.calculateEqualPrincipal(principal, monthlyRate, totalMonths, graceMonths);
         }
+
+        // Arrays to hold schedules
+        const allSchedules = [mainResult.schedule];
+        const relatedSchedules = [mainResult.schedule];
+
+        // Track upfront costs
+        let relatedUpfrontCosts = 0;
+        let unrelatedUpfrontCosts = 0;
+
+        // 2. Process Additional Costs
+        this.additionalCosts.forEach(cost => {
+            let financedAmount = 0;
+            let upfrontAmount = 0;
+
+            if (cost.mode === 'financed') {
+                const ratio = (typeof cost.loanRatio === 'number') ? cost.loanRatio : 100;
+                financedAmount = cost.amount * (ratio / 100);
+                upfrontAmount = cost.amount - financedAmount;
+            } else {
+                upfrontAmount = cost.amount;
+            }
+
+            // Categorize upfront portion
+            if (cost.type === 'unrelated') {
+                unrelatedUpfrontCosts += upfrontAmount;
+            } else {
+                relatedUpfrontCosts += upfrontAmount;
+            }
+
+            // Calculate financed portion schedule
+            if (financedAmount > 0) {
+                // Rate
+                const costRateVal = (typeof cost.rate === 'number') ? cost.rate : (this.annualRate * 100);
+                const costMonthlyRate = (costRateVal / 100) / 12;
+
+                // Term
+                const costTermVal = (typeof cost.term === 'number') ? cost.term : this.termYears;
+                const costTotalMonths = Math.floor(costTermVal * 12);
+
+                // Grace Period (Input is in Years)
+                const costGraceYears = (typeof cost.gracePeriod === 'number') ? cost.gracePeriod : 0;
+                const costGraceMonths = Math.min(Math.floor(costGraceYears * 12), costTotalMonths - 1);
+
+                // Calculate Schedule (Standard Equal Payment for costs)
+                const costResult = this.calculateEqualPayment(financedAmount, costMonthlyRate, costTotalMonths, costGraceMonths);
+
+                // Add to schedules
+                allSchedules.push(costResult.schedule);
+                if (cost.type !== 'unrelated') {
+                    relatedSchedules.push(costResult.schedule);
+                }
+            }
+        });
+
+        // 3. Merge Schedules
+        // schedule: Contains EVERYTHING (for Amortization Table, Total Payment, Charts)
+        this.schedule = this.mergeSchedules(allSchedules, mainResult.schedule);
+
+        // aprSchedule: Contains only RELATED items (for APR calculation)
+        const aprSchedule = this.mergeSchedules(relatedSchedules, mainResult.schedule);
+
+        // 4. Calculate Final Totals
+        const totalPayment = this.schedule.reduce((sum, item) => sum + item.payment, 0);
+        const totalInterest = this.schedule.reduce((sum, item) => sum + item.interest, 0);
+
+        // 5. Calculate APR
+        // Use relatedUpfrontCosts and aprSchedule
+        const apr = this.calculateIRR(principal, relatedUpfrontCosts, aprSchedule);
+
+        // Calculate first/last payments for display
+        const monthlyPaymentFirst = this.schedule.length > 0 ? this.schedule[0].payment : 0;
+        const monthlyPaymentLast = this.schedule.length > 0 ? this.schedule[this.schedule.length - 1].payment : 0;
+
+        // Grace payment check (from main loan perspective)
+        let gracePayment = null;
+        if (graceMonths > 0 && this.schedule.length >= graceMonths) {
+            gracePayment = this.schedule[0].payment;
+        }
+
+        // Total Cost (Total Pmt + All Upfront Costs)
+        // Note: Total Payment includes repayment of financed amounts + interest
+        const totalUpfrontAll = relatedUpfrontCosts + unrelatedUpfrontCosts;
+        const totalCost = totalPayment + relatedUpfrontCosts; // Usually Total Cost refers to cost of LOAN, so maybe exclude unrelated?
+        // Let's stick to: Total Cost = Total Payment (Principal+Interest) + Upfront Fees (Related)
+        // User's unrelated cost (e.g. decoration) isn't "Cost of Loan", it's "Cost of Project".
+        // Current 'totalCost' field is likely 'Total Cost of Accessing Money'.
+        // So `totalPayment + relatedUpfrontCosts` is correct.
+
+        // Calculate Total Down Payment
+        const housePrice = this.loanRatio > 0 ? this.loanAmount / (this.loanRatio / 100) : 0;
+        const baseDownPayment = Math.max(0, housePrice - this.loanAmount);
+        // Corrected Formula: Base Down Payment + All Upfront Costs (Related + Unrelated)
+        const totalDownPayment = baseDownPayment + unrelatedUpfrontCosts + relatedUpfrontCosts;
+
+        return {
+            monthlyPayment: monthlyPaymentFirst === monthlyPaymentLast ? monthlyPaymentFirst : null,
+            monthlyPaymentFirst: monthlyPaymentFirst,
+            monthlyPaymentLast: monthlyPaymentLast,
+            gracePayment: gracePayment,
+            totalPayment: totalPayment,
+            totalInterest: totalInterest,
+            totalCost: totalCost,
+            additionalCosts: this.getTotalAdditionalCosts(),
+            principal: principal,
+            graceMonths: graceMonths,
+            apr: apr,
+            schedule: this.schedule,
+            totalDownPayment: Math.round(totalDownPayment)
+        };
     }
 
-    // Equal Payment with Grace Period - 本息平均攤還（含寬限期）
-    calculateEqualPaymentWithGrace(principal, monthlyRate, totalMonths, graceMonths) {
+    // Merge multiple schedules into one
+    mergeSchedules(schedules, mainSchedule) {
+        let maxLen = 0;
+        schedules.forEach(s => maxLen = Math.max(maxLen, s.length));
+
+        const merged = [];
+        let cumulativePrincipal = 0;
+        let cumulativeInterest = 0;
+
+        for (let i = 0; i < maxLen; i++) {
+            const period = i + 1;
+            let payment = 0;
+            let principal = 0;
+            let interest = 0;
+            let remainingBalance = 0;
+            let isGrace = false;
+
+            // Determine if this is a grace period based on Main Schedule
+            if (i < mainSchedule.length) {
+                if (mainSchedule[i].isGracePeriod) isGrace = true;
+            }
+
+            schedules.forEach(s => {
+                if (i < s.length) {
+                    const item = s[i];
+                    payment += item.payment;
+                    principal += item.principal;
+                    interest += item.interest;
+                    remainingBalance += item.remainingBalance;
+                }
+            });
+
+            cumulativePrincipal += principal;
+            cumulativeInterest += interest;
+
+            merged.push({
+                period,
+                payment: Math.round(payment),
+                principal: Math.round(principal),
+                interest: Math.round(interest),
+                cumulativePrincipal: Math.round(cumulativePrincipal),
+                cumulativeInterest: Math.round(cumulativeInterest),
+                remainingBalance: Math.round(remainingBalance),
+                isGracePeriod: isGrace
+            });
+        }
+        return merged;
+    }
+
+    // Equal Payment Calculation (Returns schedule)
+    calculateEqualPayment(principal, monthlyRate, totalMonths, graceMonths) {
+        const schedule = [];
         const repaymentMonths = totalMonths - graceMonths;
         let remainingBalance = principal;
         let cumulativePrincipal = 0;
         let cumulativeInterest = 0;
-        let totalInterest = 0;
-        let gracePayment = 0;
 
-        // Calculate monthly payment after grace period
         let monthlyPayment;
         if (monthlyRate === 0) {
             monthlyPayment = principal / repaymentMonths;
@@ -68,196 +224,116 @@ class LoanCalculator {
                 (Math.pow(1 + monthlyRate, repaymentMonths) - 1);
         }
 
-        // Grace period - interest only
+        // Grace period
         for (let month = 1; month <= graceMonths; month++) {
             const interestPayment = remainingBalance * monthlyRate;
-            gracePayment = interestPayment;
 
             cumulativeInterest += interestPayment;
-            totalInterest += interestPayment;
 
-            this.schedule.push({
+            schedule.push({
                 period: month,
                 payment: Math.round(interestPayment),
                 principal: 0,
                 interest: Math.round(interestPayment),
-                cumulativePrincipal: 0,
+                cumulativePrincipal: Math.round(cumulativePrincipal),
                 cumulativeInterest: Math.round(cumulativeInterest),
                 remainingBalance: Math.round(remainingBalance),
                 isGracePeriod: true
             });
         }
 
-        // Regular payment period
+        // Regular period
         for (let month = graceMonths + 1; month <= totalMonths; month++) {
             const interestPayment = remainingBalance * monthlyRate;
-            const principalPayment = monthlyPayment - interestPayment;
+            let principalPayment = monthlyPayment - interestPayment;
 
-            cumulativePrincipal += principalPayment;
-            cumulativeInterest += interestPayment;
-            remainingBalance -= principalPayment;
-            totalInterest += interestPayment;
-
+            // Adjust last month
             if (month === totalMonths) {
-                remainingBalance = 0;
+                principalPayment = remainingBalance;
+                // Recalculate payment to match exact balance
+                // monthlyPayment = principalPayment + interestPayment; 
             }
 
-            this.schedule.push({
+            remainingBalance -= principalPayment;
+            cumulativePrincipal += principalPayment;
+            cumulativeInterest += interestPayment;
+
+            if (remainingBalance < 0) remainingBalance = 0;
+
+            schedule.push({
                 period: month,
-                payment: Math.round(monthlyPayment),
+                payment: Math.round(principalPayment + interestPayment), // Use calculated sum
                 principal: Math.round(principalPayment),
                 interest: Math.round(interestPayment),
                 cumulativePrincipal: Math.round(cumulativePrincipal),
                 cumulativeInterest: Math.round(cumulativeInterest),
-                remainingBalance: Math.max(0, Math.round(remainingBalance)),
+                remainingBalance: Math.round(remainingBalance),
                 isGracePeriod: false
             });
         }
 
-        const totalPayment = (gracePayment * graceMonths) + (monthlyPayment * repaymentMonths);
-        const additionalCosts = this.getTotalAdditionalCosts();
-
-        // Calculate APR
-        const apr = this.calculateAPR(principal, totalPayment, additionalCosts, totalMonths);
-
-        return {
-            monthlyPayment: Math.round(monthlyPayment),
-            monthlyPaymentFirst: graceMonths > 0 ? Math.round(gracePayment) : Math.round(monthlyPayment),
-            monthlyPaymentLast: Math.round(monthlyPayment),
-            gracePayment: graceMonths > 0 ? Math.round(gracePayment) : null,
-            totalPayment: Math.round(totalPayment),
-            totalInterest: Math.round(totalInterest),
-            totalCost: Math.round(totalPayment + additionalCosts),
-            additionalCosts: additionalCosts,
-            principal: principal,
-            graceMonths: graceMonths,
-            apr: apr,
-            schedule: this.schedule
-        };
+        return { schedule, monthlyPayment }; // Only need schedule really
     }
 
-    // Equal Principal with Grace Period - 本金平均攤還（含寬限期）
-    calculateEqualPrincipalWithGrace(principal, monthlyRate, totalMonths, graceMonths) {
+    // Equal Principal Calculation (Returns schedule)
+    calculateEqualPrincipal(principal, monthlyRate, totalMonths, graceMonths) {
+        const schedule = [];
         const repaymentMonths = totalMonths - graceMonths;
         const monthlyPrincipal = principal / repaymentMonths;
-
         let remainingBalance = principal;
         let cumulativePrincipal = 0;
         let cumulativeInterest = 0;
-        let totalInterest = 0;
-        let firstRegularPayment = 0;
-        let lastPayment = 0;
-        let gracePayment = 0;
 
-        // Grace period - interest only
+        // Grace period
         for (let month = 1; month <= graceMonths; month++) {
             const interestPayment = remainingBalance * monthlyRate;
-            gracePayment = interestPayment;
-
             cumulativeInterest += interestPayment;
-            totalInterest += interestPayment;
 
-            this.schedule.push({
+            schedule.push({
                 period: month,
                 payment: Math.round(interestPayment),
                 principal: 0,
                 interest: Math.round(interestPayment),
-                cumulativePrincipal: 0,
+                cumulativePrincipal: Math.round(cumulativePrincipal),
                 cumulativeInterest: Math.round(cumulativeInterest),
                 remainingBalance: Math.round(remainingBalance),
                 isGracePeriod: true
             });
         }
 
-        // Regular payment period
+        // Regular period
         for (let month = graceMonths + 1; month <= totalMonths; month++) {
             const interestPayment = remainingBalance * monthlyRate;
-            const payment = monthlyPrincipal + interestPayment;
+            let currentPrincipal = monthlyPrincipal;
 
-            cumulativePrincipal += monthlyPrincipal;
-            cumulativeInterest += interestPayment;
-            remainingBalance -= monthlyPrincipal;
-            totalInterest += interestPayment;
-
-            if (month === graceMonths + 1) firstRegularPayment = payment;
             if (month === totalMonths) {
-                lastPayment = payment;
-                remainingBalance = 0;
+                currentPrincipal = remainingBalance;
             }
 
-            this.schedule.push({
+            const payment = currentPrincipal + interestPayment;
+            remainingBalance -= currentPrincipal;
+            cumulativePrincipal += currentPrincipal;
+            cumulativeInterest += interestPayment;
+
+            if (remainingBalance < 0) remainingBalance = 0;
+
+            schedule.push({
                 period: month,
                 payment: Math.round(payment),
-                principal: Math.round(monthlyPrincipal),
+                principal: Math.round(currentPrincipal),
                 interest: Math.round(interestPayment),
                 cumulativePrincipal: Math.round(cumulativePrincipal),
                 cumulativeInterest: Math.round(cumulativeInterest),
-                remainingBalance: Math.max(0, Math.round(remainingBalance)),
+                remainingBalance: Math.round(remainingBalance),
                 isGracePeriod: false
             });
         }
 
-        const totalPayment = principal + totalInterest;
-        const additionalCosts = this.getTotalAdditionalCosts();
-
-        // Calculate APR
-        const apr = this.calculateAPR(principal, totalPayment, additionalCosts, totalMonths);
-
-        return {
-            monthlyPayment: null,
-            monthlyPaymentFirst: graceMonths > 0 ? Math.round(gracePayment) : Math.round(firstRegularPayment),
-            monthlyPaymentLast: Math.round(lastPayment),
-            gracePayment: graceMonths > 0 ? Math.round(gracePayment) : null,
-            totalPayment: Math.round(totalPayment),
-            totalInterest: Math.round(totalInterest),
-            totalCost: Math.round(totalPayment + additionalCosts),
-            additionalCosts: additionalCosts,
-            principal: principal,
-            graceMonths: graceMonths,
-            apr: apr,
-            schedule: this.schedule
-        };
-    }
-
-    // Calculate Annual Percentage Rate (APR) - 總費用年百分率
-    // APR considers all costs including fees and represents the true cost of borrowing
-    calculateAPR(principal, totalPayment, additionalCosts, totalMonths) {
-        // Total amount paid including all fees
-        const totalCost = totalPayment + additionalCosts;
-
-        // Net loan amount received (principal minus upfront fees)
-        const netLoan = principal - additionalCosts;
-
-        // If net loan is 0 or negative, APR cannot be calculated
-        if (netLoan <= 0) {
-            return this.annualRate * 100;
-        }
-
-        // Use Newton-Raphson method to find APR
-        // We need to find the rate r where:
-        // Sum of (payment / (1 + r/12)^n) = netLoan
-
-        // Simplified APR calculation using total cost approach
-        // This is an approximation but gives a good estimate
-        const years = totalMonths / 12;
-
-        // Total interest and fees
-        const totalInterestAndFees = totalCost - principal;
-
-        // Average outstanding balance (simplified)
-        const avgBalance = principal / 2;
-
-        // Effective rate per year considering all costs
-        const effectiveRate = (totalInterestAndFees / avgBalance) / years;
-
-        // More accurate APR using IRR-like calculation
-        const apr = this.calculateIRR(principal, additionalCosts, this.schedule, totalMonths);
-
-        return apr;
+        return { schedule };
     }
 
     // Internal Rate of Return calculation for APR
-    calculateIRR(principal, upfrontCosts, schedule, totalMonths) {
+    calculateIRR(principal, upfrontCosts, schedule) {
         // Net amount received
         const netReceived = principal - upfrontCosts;
 
@@ -303,6 +379,9 @@ class LoanCalculator {
     // Get data for charts - sample every N periods to reduce data points
     getChartData(maxPoints = 60) {
         const schedule = this.schedule;
+        // avoid division by zero
+        if (!schedule || schedule.length === 0) return { labels: [], payments: [], cumulativePrincipal: [], cumulativeInterest: [] };
+
         const interval = Math.ceil(schedule.length / maxPoints);
 
         const labels = [];
@@ -337,7 +416,12 @@ class LoanCalculator {
 
     // Generate summary for sharing
     getSummary() {
+        // We need to run calculate if not already, or just grab last results?
+        // Better to re-run or store results.
+        // But calculate() stores to this.schedule.
+        // Let's assume calculate() was called before getSummary, or call it now.
         const result = this.calculate();
+
         return {
             loanAmount: this.loanAmount,
             actualAmount: this.getActualLoanAmount(),
