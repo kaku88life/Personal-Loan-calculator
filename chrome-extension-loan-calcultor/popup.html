@@ -4,48 +4,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>貸款計算機 | Loan Calculator | ローン計算機</title>
+    <title>貸款計算機 | Loan Calculator | ローンシミュレーター</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
 <body class="theme-light">
     <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1 data-i18n="title">個人貸款模擬試算</h1>
+            <div class="header-controls">
+                <!-- Theme Toggle Button -->
+                <button type="button" class="theme-toggle" id="themeToggle" title="切換主題">
+                    <span class="theme-icon" id="themeIcon">🌤️</span>
+                </button>
+                <!-- Web Version Button -->
+                <button type="button" class="theme-toggle" id="webLinkBtn" title="網頁版完整功能">
+                    <span class="theme-icon">🌐</span>
+                </button>
+                <!-- Settings Button -->
+                <div class="settings-dropdown">
+                    <button type="button" class="settings-toggle" id="settingsToggle" title="設定">
+                        <span>⚙️</span>
+                    </button>
+                    <div class="settings-dropdown-menu" id="settingsMenu">
+                        <div class="settings-group">
+                            <label data-i18n="language">語言</label>
+                            <select id="languageSelect">
+                                <option value="zh">中文</option>
+                                <option value="en">English</option>
+                                <option value="ja">日本語</option>
+                            </select>
+                        </div>
+                        <div class="settings-group">
+                            <label data-i18n="currency">幣別</label>
+                            <select id="currencySelect">
+                                <option value="TWD">TWD (台幣)</option>
+                                <option value="JPY">JPY (日幣)</option>
+                                <option value="USD">USD (美金)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
         <!-- Main Content -->
         <main class="main-content">
             <!-- Input Section -->
             <section class="input-section">
                 <div class="section-header">
                     <h2 data-i18n="loanDetails">貸款資訊</h2>
-                    <div class="section-controls">
-                        <!-- Theme Toggle Button -->
-                        <button type="button" class="theme-toggle" id="themeToggle" title="切換主題">
-                            <span class="theme-icon" id="themeIcon">🌤️</span>
-                        </button>
-                        <!-- Settings Button -->
-                        <div class="settings-dropdown">
-                            <button type="button" class="settings-toggle" id="settingsToggle" title="設定">
-                                <span>⚙️</span>
-                            </button>
-                            <div class="settings-dropdown-menu" id="settingsMenu">
-                                <div class="settings-group">
-                                    <label data-i18n="language">語言</label>
-                                    <select id="languageSelect">
-                                        <option value="zh">中文</option>
-                                        <option value="en">English</option>
-                                        <option value="ja">日本語</option>
-                                    </select>
-                                </div>
-                                <div class="settings-group">
-                                    <label data-i18n="currency">幣別</label>
-                                    <select id="currencySelect">
-                                        <option value="TWD">TWD (台幣)</option>
-                                        <option value="JPY">JPY (日幣)</option>
-                                        <option value="USD">USD (美金)</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <button type="button" id="resetBtn" class="btn-reset" title="重置所有輸入">
+                        <span>↻</span>
+                    </button>
                 </div>
 
                 <!-- Loan Type -->
@@ -62,11 +74,11 @@
                     </div>
                 </div>
 
-                <!-- Loan Amount -->
+                <!-- Product Amount -->
                 <div class="form-group">
-                    <label data-i18n="loanAmount">貸款金額</label>
+                    <label data-i18n="productAmount" for="productAmount">商品金額</label>
                     <div class="input-with-unit">
-                        <input type="text" id="loanAmount" inputmode="numeric" pattern="[0-9,]*" value="1,000,000">
+                        <input type="text" id="productAmount" inputmode="numeric" pattern="[0-9,]*" value="10,000,000">
                         <span class="unit" id="currencyUnit">TWD</span>
                     </div>
                 </div>
@@ -95,9 +107,19 @@
                     <div class="form-group compact">
                         <label data-i18n="interestRate">年利率</label>
                         <div class="input-inline">
-                            <input type="number" id="interestRate" min="0" max="30" step="0.01" value="2.0">
+                            <input type="number" id="interestRate" min="0" max="30" step="0.01" value="2.5">
                             <span class="unit-inline">%</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Derived Loan Amount -->
+                <div class="form-group">
+                    <label data-i18n="loanAmount">貸款金額</label>
+                    <div class="input-with-unit">
+                        <input type="text" id="loanAmount" readonly value="8,000,000"
+                            style="background-color: var(--bg-secondary); color: var(--text-muted); cursor: not-allowed;">
+                        <span class="unit">TWD</span>
                     </div>
                 </div>
 
@@ -144,11 +166,8 @@
                     </div>
                 </div>
 
-                <!-- Action Buttons -->
-                <div class="action-buttons">
-                    <button type="button" id="resetBtn" class="btn-secondary" data-i18n="reset">重置</button>
-                    <button type="button" id="calculateBtn" class="btn-primary" data-i18n="calculate">計算</button>
-                </div>
+                <!-- Calculate Button -->
+                <button type="button" id="calculateBtn" class="btn-primary" data-i18n="calculate">計算</button>
             </section>
 
             <!-- Results Section -->
@@ -177,141 +196,50 @@
                     </div>
                 </div>
 
+                <!-- Total Down Payment Card -->
+                <div class="card card-apr" style="margin-bottom: 24px;">
+                    <h3 data-i18n="totalDownPayment">總自備金額</h3>
+                    <p id="totalDownPaymentValue" class="value" style="font-size: 2rem;">-</p>
+                </div>
+
                 <!-- Summary Cards -->
-                <div class="summary-cards">
-                    <div class="card card-monthly-payment">
+                <div class="summary-grid">
+                    <!-- Row 1: Monthly Payment & APR -->
+                    <div class="card">
                         <h3 data-i18n="monthlyPayment">每月還款金額</h3>
-                        <div class="monthly-payment-display">
-                            <p id="monthlyPaymentValue" class="value">-</p>
-                            <div class="grace-toggle-container" id="graceToggleContainer" style="display: none;">
-                                <div class="grace-payment-toggle">
-                                    <span class="toggle-label" data-i18n="gracePeriodPayment">寬限期內</span>
-                                    <label class="mini-toggle">
-                                        <input type="checkbox" id="gracePaymentToggle">
-                                        <span class="mini-toggle-slider"></span>
-                                    </label>
-                                    <span class="toggle-label" data-i18n="postGracePeriodPayment">寬限期後</span>
-                                </div>
-                                <p id="gracePaymentValue" class="value grace-value">-</p>
-                            </div>
+                        <div class="grace-payment-toggle">
+                            <span class="toggle-label" data-i18n="gracePeriodPayment">寬限期內</span>
+                            <label class="mini-toggle">
+                                <input type="checkbox" id="gracePaymentToggle">
+                                <span class="mini-toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label" data-i18n="postGracePeriodPayment">寬限期後</span>
                         </div>
+                        <p id="gracePaymentValue" class="value grace-value">-</p>
                     </div>
                     <div class="card card-apr">
                         <h3 data-i18n="apr">總費用年百分率</h3>
                         <p id="aprValue" class="value">-</p>
                     </div>
-                    <!-- Collapsible Details -->
-                    <div class="card card-details-toggle" id="detailsToggle">
-                        <span class="toggle-icon" id="detailsToggleIcon">+</span>
-                        <span data-i18n="viewDetails">查看詳細</span>
+
+                    <!-- Row 2: Total Payment & Total Interest -->
+                    <div class="card">
+                        <h3 data-i18n="totalPayment">總還款金額</h3>
+                        <p id="totalPaymentValue" class="value">-</p>
                     </div>
-                    <div class="details-container" id="detailsContainer" style="display: none;">
-                        <div class="card">
-                            <h3 data-i18n="totalPayment">總還款金額</h3>
-                            <p id="totalPaymentValue" class="value">-</p>
-                        </div>
-                        <div class="card">
-                            <h3 data-i18n="totalInterest">總利息</h3>
-                            <p id="totalInterestValue" class="value">-</p>
-                        </div>
+                    <div class="card">
+                        <h3 data-i18n="totalInterest">總利息</h3>
+                        <p id="totalInterestValue" class="value">-</p>
                     </div>
                 </div>
 
                 <!-- Charts -->
-                <div class="charts-container">
-                    <div class="chart-wrapper">
-                        <div class="chart-header">
-                            <h3 data-i18n="paymentChart">還款金額趨勢圖</h3>
-                            <div class="chart-actions">
-                                <button type="button" class="btn-magnify" id="magnifyPaymentChart" title="查看詳細">
-                                    🔍
-                                </button>
-                                <button type="button" class="btn-fullscreen" data-target="paymentChartFull" title="全螢幕">
-                                    ⛶
-                                </button>
-                            </div>
-                        </div>
-                        <div class="chart-scroll-container">
-                            <canvas id="paymentChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-wrapper">
-                        <div class="chart-header">
-                            <h3 data-i18n="balanceChart">本金利息累計圖</h3>
-                            <div class="chart-actions">
-                                <button type="button" class="btn-magnify" id="magnifyBalanceChart" title="查看詳細">
-                                    🔍
-                                </button>
-                                <button type="button" class="btn-fullscreen" data-target="balanceChartFull" title="全螢幕">
-                                    ⛶
-                                </button>
-                            </div>
-                        </div>
-                        <div class="chart-scroll-container">
-                            <canvas id="balanceChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Chart Detail Modal -->
-                <div class="modal-overlay" id="chartModal">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3 id="modalTitle">詳細資訊</h3>
-                            <button type="button" class="modal-close" id="modalClose">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="period-selector">
-                                <label data-i18n="period">期數</label>
-                                <input type="range" id="periodSlider" min="1" max="240" value="1">
-                                <span id="periodDisplay">1</span>
-                            </div>
-                            <div class="period-details" id="periodDetails">
-                                <!-- Period details will be populated here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Fullscreen Modal -->
-                <div class="fullscreen-overlay" id="fullscreenModal">
-                    <div class="fullscreen-content">
-                        <div class="fullscreen-header">
-                            <h3 id="fullscreenTitle">全螢幕檢視</h3>
-                            <button type="button" class="fullscreen-close" id="fullscreenClose">&times;</button>
-                        </div>
-                        <div class="fullscreen-body" id="fullscreenBody">
-                            <!-- Content will be cloned here -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Amortization Table -->
-                <div class="table-container">
-                    <div class="table-header">
-                        <h3 data-i18n="amortizationSchedule">還款明細表</h3>
-                        <div class="chart-actions">
-                            <button type="button" class="btn-fullscreen" data-target="tableFull" title="全螢幕">
-                                ⛶
-                            </button>
-                        </div>
-                    </div>
-                    <div class="table-scroll">
-                        <table id="amortizationTable">
-                            <thead>
-                                <tr>
-                                    <th data-i18n="period">期數</th>
-                                    <th data-i18n="payment">還款金額</th>
-                                    <th data-i18n="principal">本金</th>
-                                    <th data-i18n="interest">利息</th>
-                                    <th data-i18n="cumulativePrincipal">累計本金</th>
-                                    <th data-i18n="cumulativeInterest">累計利息</th>
-                                    <th data-i18n="remainingBalance">剩餘本金</th>
-                                </tr>
-                            </thead>
-                            <tbody id="amortizationBody"></tbody>
-                        </table>
-                    </div>
+                <!-- Full Function Web Link -->
+                <div style="margin-top: 24px; margin-bottom: 24px;">
+                    <button type="button" id="fullFunctionBtn" class="btn-primary"
+                        style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                        <span>🌐</span> <span>完整功能 (Web)</span>
+                    </button>
                 </div>
 
             </section>
@@ -319,7 +247,8 @@
 
         <!-- Footer -->
         <footer class="footer">
-            <p data-i18n="footer">© 2026 貸款計算機</p>
+            <p>© 2026 kaku88life. All rights reserved.</p>
+            <p class="disclaimer" data-i18n="disclaimer">本工具僅供參考，實際貸款條件請以金融機構公告為準</p>
         </footer>
     </div>
 

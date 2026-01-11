@@ -12,13 +12,19 @@ class LoanCalculator {
         this.schedule = [];
     }
 
-    setParams(amount, ratio, rate, years, gracePeriod, method) {
+    setParams(amount, ratio, rate, years, gracePeriod, method, productAmount) {
         this.loanAmount = amount;
         this.loanRatio = ratio;
         this.annualRate = rate / 100;
         this.termYears = years;
         this.gracePeriodMonths = gracePeriod || 0;
         this.paymentMethod = method;
+        // If productAmount is provided, use it. Otherwise derive it.
+        if (productAmount) {
+            this.productAmount = productAmount;
+        } else {
+            this.productAmount = ratio > 0 ? amount / (ratio / 100) : amount;
+        }
     }
 
     setAdditionalCosts(costs) {
@@ -31,7 +37,9 @@ class LoanCalculator {
     }
 
     getActualLoanAmount() {
-        return this.loanAmount * (this.loanRatio / 100);
+        // loanAmount is already the calculated loan amount (product amount × ratio)
+        // so we just return it directly without multiplying by ratio again
+        return this.loanAmount;
     }
 
     calculate() {
@@ -129,17 +137,20 @@ class LoanCalculator {
         // Total Cost (Total Pmt + All Upfront Costs)
         // Note: Total Payment includes repayment of financed amounts + interest
         const totalUpfrontAll = relatedUpfrontCosts + unrelatedUpfrontCosts;
-        const totalCost = totalPayment + relatedUpfrontCosts; // Usually Total Cost refers to cost of LOAN, so maybe exclude unrelated?
-        // Let's stick to: Total Cost = Total Payment (Principal+Interest) + Upfront Fees (Related)
-        // User's unrelated cost (e.g. decoration) isn't "Cost of Loan", it's "Cost of Project".
-        // Current 'totalCost' field is likely 'Total Cost of Accessing Money'.
-        // So `totalPayment + relatedUpfrontCosts` is correct.
+        const totalCost = totalPayment + relatedUpfrontCosts; // Stick to loan cost definition
 
         // Calculate Total Down Payment
         const housePrice = this.loanRatio > 0 ? this.loanAmount / (this.loanRatio / 100) : 0;
         const baseDownPayment = Math.max(0, housePrice - this.loanAmount);
         // Corrected Formula: Base Down Payment + All Upfront Costs (Related + Unrelated)
         const totalDownPayment = baseDownPayment + unrelatedUpfrontCosts + relatedUpfrontCosts;
+
+        // Pass specific breakdown data back
+        this.lastBreakdown = {
+            baseDownPayment: baseDownPayment,
+            unrelatedUpfrontCosts: unrelatedUpfrontCosts,
+            relatedUpfrontCosts: relatedUpfrontCosts
+        };
 
         return {
             monthlyPayment: monthlyPaymentFirst === monthlyPaymentLast ? monthlyPaymentFirst : null,
@@ -154,7 +165,9 @@ class LoanCalculator {
             graceMonths: graceMonths,
             apr: apr,
             schedule: this.schedule,
-            totalDownPayment: Math.round(totalDownPayment)
+            totalDownPayment: Math.round(totalDownPayment),
+            baseDownPayment: Math.round(baseDownPayment),
+            unrelatedCostsList: this.additionalCosts.filter(c => c.type === 'unrelated' && c.mode !== 'financed')
         };
     }
 
@@ -657,3 +670,5 @@ async function downloadPDF(schedule, summary, i18nInstance, fontName = 'YuPearl-
 
 // Create global instance
 const calculator = new LoanCalculator();
+window.calculator = calculator;
+console.log('LoanCalculator initialized and attached to window');

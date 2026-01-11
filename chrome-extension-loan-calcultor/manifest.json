@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "貸款計算機 | Loan Calculator",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "多語言、多幣別的貸款計算工具，支援房貸、車貸、信貸計算，提供視覺化圖表與匯出功能。",
-  "author": "Loan Calculator Team",
+  "author": "kaku88life",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",

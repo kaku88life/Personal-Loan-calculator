@@ -1,12 +1,13 @@
-// Internationalization (i18n) System for Chrome Extension
+// Internationalization (i18n) System
 
 const translations = {
     zh: {
         // Header
-        title: '貸款計算機',
+        title: '個人貸款模擬試算',
         language: '語言',
         theme: '主題',
         currency: '幣別',
+        fontSize: '字體大小',
         themeLight: '淺色',
         themeDark: '深色',
         themeNight: '夜間',
@@ -19,6 +20,8 @@ const translations = {
         personalLoan: '信貸',
         other: '其他',
         customLoanTypePlaceholder: '請輸入貸款類型',
+        productAmount: '購買價格',
+        productAmountPersonal: '商品金額',
         loanAmount: '貸款金額',
         loanRatio: '貸款成數',
         loanTerm: '貸款年限',
@@ -37,6 +40,18 @@ const translations = {
         additionalCosts: '額外費用',
         costNamePlaceholder: '費用名目',
         costAmountPlaceholder: '金額',
+        costPaymentMode: '支付方式',
+        costOneTime: '一次付清',
+        costFinanced: '貸款支付',
+        costFinancedRate: '貸款利率 (%)',
+        costFinancedTerm: '貸款年限',
+        costType: '費用性質',
+        costRelated: '貸款相關 (計入總費用年利率)',
+        costUnrelated: '非相關 (計入自備款)',
+        costGracePeriod: '寬限期',
+        costLoanRatio: '貸款成數 (%)',
+        costLoanAmount: '貸款金額',
+        costUpfrontAmount: '自備金額',
         totalCosts: '總額外費用：',
 
         // Calculate
@@ -44,8 +59,9 @@ const translations = {
 
         // Results
         results: '計算結果',
+        totalDownPayment: '總自備金額',
         monthlyPayment: '每月還款金額',
-        monthlyPaymentRange: '每月還款金額',
+        monthlyPaymentRange: '每月還款金額（首期/末期）',
         monthlyPaymentGrace: '寬限期月付',
         totalPayment: '總還款金額',
         totalInterest: '總利息',
@@ -75,12 +91,14 @@ const translations = {
         export: '匯出',
         share: '分享',
         shareTitle: '貸款計算結果',
-        shareText: '我使用貸款計算機計算了貸款方案',
+        shareText: '我使用個人貸款模擬試算計算了貸款方案',
         viewDetails: '查看詳細',
         detailInfo: '詳細資訊',
+        pdfFont: 'PDF 字體',
 
         // Footer
-        footer: '© 2026 貸款計算機',
+        footer: '© 2026 個人貸款模擬試算',
+        disclaimer: '本工具僅供參考，實際貸款條件請以金融機構公告為準',
 
         // Alerts
         alertFillFields: '請填寫所有必要欄位',
@@ -95,7 +113,11 @@ const translations = {
 
         // Currency
         currencySymbol: 'NT$',
-        currencyName: '台幣'
+        currencyName: '台幣',
+
+        // Confirm
+        confirmReset: '確定要重置所有輸入嗎？',
+        reset: '重置'
     },
 
     en: {
@@ -104,6 +126,7 @@ const translations = {
         language: 'Language',
         theme: 'Theme',
         currency: 'Currency',
+        fontSize: 'Font Size',
         themeLight: 'Light',
         themeDark: 'Dark',
         themeNight: 'Night',
@@ -112,10 +135,12 @@ const translations = {
         loanDetails: 'Loan Details',
         loanType: 'Loan Type',
         mortgage: 'Mortgage',
-        carLoan: 'Car Loan',
+        carLoan: 'Auto Loan',
         personalLoan: 'Personal Loan',
         other: 'Other',
         customLoanTypePlaceholder: 'Enter loan type',
+        productAmount: 'Purchase Price',
+        productAmountPersonal: 'Product Amount',
         loanAmount: 'Loan Amount',
         loanRatio: 'Loan-to-Value Ratio',
         loanTerm: 'Loan Term',
@@ -123,8 +148,8 @@ const translations = {
         months: 'Months',
         interestRate: 'Annual Interest Rate',
         paymentMethod: 'Payment Method',
-        equalPayment: 'Equal Payment (Amortization)',
-        equalPrincipal: 'Equal Principal',
+        equalPayment: 'Fixed Payment (Amortizing)',
+        equalPrincipal: 'Constant Principal',
         gracePeriod: 'Grace Period',
         gracePeriodHint: 'Interest-only payments during grace period',
         gracePeriodPayment: 'During Grace',
@@ -134,6 +159,18 @@ const translations = {
         additionalCosts: 'Additional Costs',
         costNamePlaceholder: 'Cost Name',
         costAmountPlaceholder: 'Amount',
+        costPaymentMode: 'Payment',
+        costOneTime: 'Upfront',
+        costFinanced: 'Financed',
+        costFinancedRate: 'Interest Rate (%)',
+        costFinancedTerm: 'Term',
+        costType: 'Cost Type',
+        costRelated: 'Finance Charges\n(APR Applicable)',
+        costUnrelated: 'Third-Party Fees\n(Non-APR)',
+        costGracePeriod: 'Grace Period',
+        costLoanRatio: 'Loan Ratio (%)',
+        costLoanAmount: 'Financed Amount',
+        costUpfrontAmount: 'Upfront Amount',
         totalCosts: 'Total Additional Costs:',
 
         // Calculate
@@ -141,10 +178,11 @@ const translations = {
 
         // Results
         results: 'Results',
+        totalDownPayment: 'Total Down Payment',
         monthlyPayment: 'Monthly Payment',
-        monthlyPaymentRange: 'Monthly Payment',
+        monthlyPaymentRange: 'Monthly Payment (First/Last)',
         monthlyPaymentGrace: 'Grace Period Payment',
-        totalPayment: 'Total Payment',
+        totalPayment: 'Total Repayment Amount',
         totalInterest: 'Total Interest',
         totalCostWithFees: 'Total Cost (incl. Fees)',
         apr: 'Annual Percentage Rate',
@@ -165,7 +203,7 @@ const translations = {
         interest: 'Interest',
         cumulativePrincipal: 'Cumulative Principal',
         cumulativeInterest: 'Cumulative Interest',
-        remainingBalance: 'Remaining Balance',
+        remainingBalance: 'Outstanding Principal',
         graceLabel: '(Grace)',
 
         // Export
@@ -175,9 +213,11 @@ const translations = {
         shareText: 'I calculated a loan plan using Loan Calculator',
         viewDetails: 'View Details',
         detailInfo: 'Detail Information',
+        pdfFont: 'PDF Font',
 
         // Footer
         footer: '© 2026 Loan Calculator',
+        disclaimer: 'This tool is for reference only. Please refer to financial institutions for actual Terms and conditions.',
 
         // Alerts
         alertFillFields: 'Please fill in all required fields',
@@ -192,33 +232,40 @@ const translations = {
 
         // Currency
         currencySymbol: 'NT$',
-        currencyName: 'TWD'
+        currencyName: 'TWD',
+
+        // Confirm
+        confirmReset: 'Are you sure you want to reset all inputs?',
+        reset: 'Reset'
     },
 
     ja: {
         // Header
-        title: 'ローン計算機',
+        title: 'ローンシミュレーター',
         language: '言語',
         theme: 'テーマ',
         currency: '通貨',
+        fontSize: '文字サイズ',
         themeLight: 'ライト',
         themeDark: 'ダーク',
         themeNight: 'ナイト',
 
         // Loan Details
-        loanDetails: 'ローン情報',
+        loanDetails: 'お借入れ条件',
         loanType: 'ローンタイプ',
         mortgage: '住宅ローン',
         carLoan: '自動車ローン',
-        personalLoan: '個人ローン',
+        personalLoan: 'フリーローン',
         other: 'その他',
         customLoanTypePlaceholder: 'ローンタイプを入力',
+        productAmount: '物件価格',
+        productAmountPersonal: '商品金額',
         loanAmount: '借入金額',
-        loanRatio: '借入比率',
+        loanRatio: '融資比率',
         loanTerm: '返済期間',
         years: '年',
         months: 'ヶ月',
-        interestRate: '年利率',
+        interestRate: '金利（年率）',
         paymentMethod: '返済方法',
         equalPayment: '元利均等返済',
         equalPrincipal: '元金均等返済',
@@ -231,6 +278,18 @@ const translations = {
         additionalCosts: '追加費用',
         costNamePlaceholder: '費用名',
         costAmountPlaceholder: '金額',
+        costPaymentMode: '支払い方法',
+        costOneTime: '一括払い',
+        costFinanced: 'ローン組み込み',
+        costFinancedRate: '金利 (%)',
+        costFinancedTerm: '返済期間',
+        costType: '費用区分',
+        costRelated: 'ローン関連 (実質年率込)',
+        costUnrelated: 'その他 (頭金に加算)',
+        costGracePeriod: '据置期間',
+        costLoanRatio: '融資比率 (%)',
+        costLoanAmount: '融資額',
+        costUpfrontAmount: '自己資金',
         totalCosts: '追加費用合計：',
 
         // Calculate
@@ -238,8 +297,9 @@ const translations = {
 
         // Results
         results: '計算結果',
+        totalDownPayment: '自己資金合計',
         monthlyPayment: '月々の返済額',
-        monthlyPaymentRange: '月々の返済額',
+        monthlyPaymentRange: '月々の返済額（初回/最終）',
         monthlyPaymentGrace: '据置期間中の月額',
         totalPayment: '総返済額',
         totalInterest: '総利息',
@@ -256,13 +316,13 @@ const translations = {
         period: '期',
 
         // Table
-        amortizationSchedule: '返済スケジュール',
+        amortizationSchedule: '返済予定表',
         payment: '返済額',
         principal: '元金',
         interest: '利息',
         cumulativePrincipal: '累計元金',
         cumulativeInterest: '累計利息',
-        remainingBalance: '残高',
+        remainingBalance: '借入残高',
         graceLabel: '(据置)',
 
         // Export
@@ -272,9 +332,11 @@ const translations = {
         shareText: 'ローン計算機でローンプランを計算しました',
         viewDetails: '詳細を見る',
         detailInfo: '詳細情報',
+        pdfFont: 'PDFフォント',
 
         // Footer
-        footer: '© 2026 ローン計算機',
+        footer: '© 2026 ローンシミュレーター',
+        disclaimer: '本シミュレーションは概算です。実際のお借入れ条件は金融機関にてご確認ください',
 
         // Alerts
         alertFillFields: 'すべての必須項目を入力してください',
@@ -289,7 +351,11 @@ const translations = {
 
         // Currency
         currencySymbol: '¥',
-        currencyName: 'JPY'
+        currencyName: 'JPY',
+
+        // Confirm
+        confirmReset: 'すべての入力をリセットしますか？',
+        reset: 'リセット'
     }
 };
 

@@ -4,28 +4,12 @@
 const FontLoader = {
     // Available fonts configuration
     fonts: {
-        'YuPearl-Medium': {
-            path: 'fonts/YuPearl-Medium.ttf',
+        'NotoSansTC-Regular': {
+            path: 'fonts/NotoSansTC-Regular.ttf',
             displayName: {
-                zh: '粉圓體 Medium',
-                en: 'YuPearl Medium',
-                ja: '粉円体 Medium'
-            }
-        },
-        'Iansui-Regular': {
-            path: 'fonts/Iansui-Regular.ttf',
-            displayName: {
-                zh: '芫荽體',
-                en: 'Iansui',
-                ja: 'Iansui'
-            }
-        },
-        'ChenYuluoyan-Thin': {
-            path: 'fonts/ChenYuluoyan-Thin.ttf',
-            displayName: {
-                zh: '晨鈺落雁體',
-                en: 'ChenYuluoyan',
-                ja: 'ChenYuluoyan'
+                zh: '思源黑體',
+                en: 'Noto Sans TC',
+                ja: 'Noto Sans TC'
             }
         }
     },

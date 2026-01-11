@@ -1,4 +1,4 @@
-// Main Application Logic for Chrome Extension
+// Main Application Logic
 
 // Chart instances
 let paymentChart = null;
@@ -10,14 +10,14 @@ let currentSummary = null;
 
 // Theme settings
 const themes = ['light', 'dark', 'night'];
-const themeIcons = { light: '🌤️', dark: '🌙', night: '🌃' };
+const themeIcons = { light: '🌤️', dark: '🌙', night: '⭐' };
 let currentThemeIndex = 0;
 
 // Default loan terms by type (in years)
 const defaultLoanTerms = {
     mortgage: 30,
     car: 5,
-    personal: 5,
+    personal: 7,
     other: 10
 };
 
@@ -29,6 +29,22 @@ const defaultLoanRatios = {
     other: 80
 };
 
+// Default loan amounts by type
+const defaultLoanAmounts = {
+    mortgage: 10000000,
+    car: 2000000,
+    personal: 2000000,
+    other: 5000000
+};
+
+// Default interest rates by type (in %)
+const defaultInterestRates = {
+    mortgage: 2.5,
+    car: 3.0,
+    personal: 2.5,
+    other: 3.0
+};
+
 // DOM Elements
 const elements = {
     // Controls
@@ -36,39 +52,60 @@ const elements = {
     themeToggle: document.getElementById('themeToggle'),
     themeIcon: document.getElementById('themeIcon'),
     currencySelect: document.getElementById('currencySelect'),
+    fontSizeSelect: document.getElementById('fontSizeSelect'),
 
     // Inputs
     loanTypeSelect: document.getElementById('loanTypeSelect'),
     customLoanType: document.getElementById('customLoanType'),
-    loanAmount: document.getElementById('loanAmount'),
+    // Note: productAmount and loanAmount are handled specially now
+    productAmount: document.getElementById('productAmount'),
+    loanAmount: document.getElementById('loanAmount'), // Derived
     loanRatio: document.getElementById('loanRatio'),
     loanTerm: document.getElementById('loanTerm'),
-    gracePeriod: document.getElementById('gracePeriod'),
-    gracePeriodToggle: document.getElementById('gracePeriodToggle'),
-    gracePeriodInputs: document.getElementById('gracePeriodInputs'),
-    gracePeriodUnit: document.getElementById('gracePeriodUnit'),
     interestRate: document.getElementById('interestRate'),
     paymentMethod: document.getElementById('paymentMethod'),
     currencyUnit: document.getElementById('currencyUnit'),
+    gracePeriod: document.getElementById('gracePeriod'),
+    gracePeriodUnit: document.getElementById('gracePeriodUnit'),
+    gracePeriodToggle: document.getElementById('gracePeriodToggle'),
+    gracePeriodInputs: document.getElementById('gracePeriodInputs'),
 
-    // Costs
-    addCostBtn: document.getElementById('addCostBtn'),
-    costsContainer: document.getElementById('costsContainer'),
-    totalCostsValue: document.getElementById('totalCostsValue'),
+    // Charts
+    paymentChart: document.getElementById('paymentChart'),
+    balanceChart: document.getElementById('balanceChart'),
+    magnifyPaymentChart: document.getElementById('magnifyPaymentChart'),
+    magnifyBalanceChart: document.getElementById('magnifyBalanceChart'),
+    expandPaymentChart: document.getElementById('expandPaymentChart'),
+    expandBalanceChart: document.getElementById('expandBalanceChart'),
 
-    // Calculate
-    calculateBtn: document.getElementById('calculateBtn'),
-
-    // Results
+    // Result details
     resultsSection: document.getElementById('resultsSection'),
-    monthlyPaymentValue: document.getElementById('monthlyPaymentValue'),
-    totalPaymentValue: document.getElementById('totalPaymentValue'),
-    totalInterestValue: document.getElementById('totalInterestValue'),
-    // totalCostValue removed - field no longer exists
-    aprValue: document.getElementById('aprValue'),
+    monthlyPaymentFirst: document.getElementById('monthlyPaymentFirst'),
+    monthlyPaymentLast: document.getElementById('monthlyPaymentLast'),
+    gracePayment: document.getElementById('gracePaymentValue'),
+    totalPayment: document.getElementById('totalPaymentValue'),
+    totalInterest: document.getElementById('totalInterestValue'),
+    totalCost: document.getElementById('totalCostValue'),
+    apr: document.getElementById('aprValue'),
+    totalDownPayment: document.getElementById('totalDownPaymentValue'),
+    totalEffect: document.getElementById('totalEffect'), // Only in DE?
+    principalAmount: document.getElementById('principalAmount'),
     amortizationBody: document.getElementById('amortizationBody'),
 
-    // Export/Share dropdown
+    // Breakdown Modal
+    fullscreenModal: document.getElementById('fullscreenModal'), // Reused or new?
+    fullscreenTitle: document.getElementById('fullscreenTitle'),
+    fullscreenClose: document.getElementById('fullscreenClose'),
+    fullscreenBody: document.getElementById('fullscreenBody'),
+
+    // Costs
+    costsContainer: document.getElementById('costsContainer'),
+    addCostBtn: document.getElementById('addCostBtn'),
+    totalCosts: document.getElementById('totalCostsValue'),
+
+    // Export & Share
+    settingsToggle: document.getElementById('settingsToggle'),
+    settingsMenu: document.getElementById('settingsMenu'),
     shareDropdownBtn: document.getElementById('shareDropdownBtn'),
     shareDropdownMenu: document.getElementById('shareDropdownMenu'),
     exportCSV: document.getElementById('exportCSV'),
@@ -76,41 +113,136 @@ const elements = {
     exportPDF: document.getElementById('exportPDF'),
     shareBtn: document.getElementById('shareBtn'),
 
-    // Chart magnify
-    magnifyPaymentChart: document.getElementById('magnifyPaymentChart'),
-    magnifyBalanceChart: document.getElementById('magnifyBalanceChart'),
+    // Other UI elements
+    resetBtn: document.getElementById('resetBtn'),
+    calculateBtn: document.getElementById('calculateBtn'),
 
-    // Modal
-    chartModal: document.getElementById('chartModal'),
-    modalTitle: document.getElementById('modalTitle'),
-    modalClose: document.getElementById('modalClose'),
     periodSlider: document.getElementById('periodSlider'),
     periodDisplay: document.getElementById('periodDisplay'),
     periodDetails: document.getElementById('periodDetails'),
 
-    // Settings dropdown
-    settingsToggle: document.getElementById('settingsToggle'),
-    settingsMenu: document.getElementById('settingsMenu'),
+    chartModal: document.getElementById('chartModal'),
+    modalTitle: document.getElementById('modalTitle'),
+    modalClose: document.getElementById('modalClose'),
 
-    // Grace payment toggle
+    fontSelect: document.getElementById('fontSelect'),
+    expandTable: document.getElementById('expandTable'),
+
     graceToggleContainer: document.getElementById('graceToggleContainer'),
     gracePaymentToggle: document.getElementById('gracePaymentToggle'),
-    gracePaymentValue: document.getElementById('gracePaymentValue'),
-
-    // Details toggle
-    detailsToggle: document.getElementById('detailsToggle'),
-    detailsToggleIcon: document.getElementById('detailsToggleIcon'),
-    detailsContainer: document.getElementById('detailsContainer'),
-
-    // Fullscreen modal
-    fullscreenModal: document.getElementById('fullscreenModal'),
-    fullscreenTitle: document.getElementById('fullscreenTitle'),
-    fullscreenBody: document.getElementById('fullscreenBody'),
-    fullscreenClose: document.getElementById('fullscreenClose')
+    gracePaymentValue: document.getElementById('gracePaymentValue')
 };
+
+// Auto-calculate Loan Amount based on Product Amount and Ratio
+function updateLoanAmount() {
+    if (!elements.productAmount || !elements.loanRatio || !elements.loanAmount) return;
+
+    const productAmount = parseFloat(elements.productAmount.value.replace(/,/g, '')) || 0;
+    const ratio = parseFloat(elements.loanRatio.value) || 0;
+    const loanAmount = Math.round(productAmount * (ratio / 100));
+
+    // Update derived field
+    elements.loanAmount.value = i18n.formatNumber(loanAmount);
+}
+
+// Add listeners for auto-calculation
+if (elements.productAmount) {
+    // Handle backspace/delete near commas by skipping over them
+    elements.productAmount.addEventListener('keydown', (e) => {
+        const input = e.target;
+        const cursorPos = input.selectionStart;
+        const value = input.value;
+
+        if (e.key === 'Backspace' && cursorPos > 0) {
+            // If the character before cursor is a comma, skip it
+            if (value[cursorPos - 1] === ',') {
+                e.preventDefault();
+                // Find the digit before the comma and delete it
+                let newPos = cursorPos - 1;
+                while (newPos > 0 && value[newPos - 1] === ',') {
+                    newPos--;
+                }
+                if (newPos > 0) {
+                    const newValue = value.substring(0, newPos - 1) + value.substring(cursorPos);
+                    input.value = newValue;
+                    // Reformat and update cursor
+                    formatNumberInput(input);
+                    updateLoanAmount();
+                }
+            }
+        } else if (e.key === 'Delete' && cursorPos < value.length) {
+            // If the character at cursor is a comma, skip it
+            if (value[cursorPos] === ',') {
+                e.preventDefault();
+                // Find the digit after the comma and delete it
+                let newPos = cursorPos + 1;
+                while (newPos < value.length && value[newPos] === ',') {
+                    newPos++;
+                }
+                if (newPos < value.length) {
+                    const newValue = value.substring(0, cursorPos) + value.substring(newPos + 1);
+                    input.value = newValue;
+                    // Reformat and update cursor
+                    formatNumberInput(input);
+                    updateLoanAmount();
+                }
+            }
+        }
+    });
+
+    elements.productAmount.addEventListener('input', () => {
+        // Use the improved formatNumberInput function
+        formatNumberInput(elements.productAmount);
+        updateLoanAmount(); // Update calculated amount
+    });
+}
+if (elements.loanRatio) {
+    elements.loanRatio.addEventListener('input', updateLoanAmount);
+}
+
+// Initial calculation
+setTimeout(updateLoanAmount, 100);
+
+// Show Down Payment Breakdown
+function showDownPaymentBreakdown(data) {
+    const listHtml = `
+        <div class="cost-list-item">
+            <span class="cost-name" data-i18n="baseDownPayment">基本頭期款</span>
+            <span class="cost-amount">${i18n.formatCurrency(data.baseDownPayment)}</span>
+        </div>
+        ${data.unrelatedCostsList.map(item => `
+        <div class="cost-list-item">
+            <span class="cost-name">${item.name}</span>
+            <span class="cost-amount">${i18n.formatCurrency(item.amount)}</span>
+        </div>
+        `).join('')}
+        <div class="cost-list-item total">
+            <span class="cost-name" data-i18n="total">總計</span>
+            <span class="cost-amount">${i18n.formatCurrency(data.totalDownPayment)}</span>
+        </div>
+    `;
+
+    showConfirmModal(
+        i18n.t('totalDownPayment') || '總自備金額明細',
+        listHtml,
+        () => { } // No confirm action needed
+    );
+    // Hide cancel button for this view-only modal
+    const modal = document.querySelector('.cost-modal-overlay:last-child'); // Get the modal we just created
+    if (modal) {
+        const cancelBtn = modal.querySelector('.btn-cancel');
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        const confirmBtn = modal.querySelector('.btn-confirm');
+        if (confirmBtn) confirmBtn.textContent = i18n.t('close') || '關閉';
+    }
+}
+
 
 // Initialize application
 function init() {
+    // Show language selector for first-time visitors
+    showLanguageSelector();
+
     // Load saved preferences
     loadPreferences();
 
@@ -125,7 +257,74 @@ function init() {
     updateMonthlyPaymentLabel();
 }
 
-// Load saved preferences from localStorage (or chrome.storage)
+// Show language selection modal for first-time visitors
+function showLanguageSelector() {
+    const savedLang = localStorage.getItem('loanCalc_language');
+
+    // If language preference exists, skip the selector
+    if (savedLang) {
+        return;
+    }
+
+    // Detect browser language
+    const browserLang = navigator.language || navigator.userLanguage;
+    let suggestedLang = 'zh'; // Default to Traditional Chinese
+    if (browserLang.startsWith('en')) suggestedLang = 'en';
+    else if (browserLang.startsWith('ja')) suggestedLang = 'ja';
+
+    // Create and show modal
+    const modal = createLanguageModal(suggestedLang);
+    document.body.appendChild(modal);
+}
+
+function createLanguageModal(suggestedLang) {
+    const overlay = document.createElement('div');
+    overlay.className = 'language-modal-overlay';
+    overlay.innerHTML = `
+        <div class="language-modal">
+            <h2>選擇語言 / Select Language / 言語を選択</h2>
+            <div class="language-options">
+                <button class="lang-btn ${suggestedLang === 'zh' ? 'suggested' : ''}" data-lang="zh">
+                    <span class="lang-flag">🇹🇼</span>
+                    <span class="lang-name">繁體中文</span>
+                    ${suggestedLang === 'zh' ? '<span class="lang-hint">推薦</span>' : ''}
+                </button>
+                <button class="lang-btn ${suggestedLang === 'en' ? 'suggested' : ''}" data-lang="en">
+                    <span class="lang-flag">🇺🇸</span>
+                    <span class="lang-name">English</span>
+                    ${suggestedLang === 'en' ? '<span class="lang-hint">Recommended</span>' : ''}
+                </button>
+                <button class="lang-btn ${suggestedLang === 'ja' ? 'suggested' : ''}" data-lang="ja">
+                    <span class="lang-flag">🇯🇵</span>
+                    <span class="lang-name">日本語</span>
+                    ${suggestedLang === 'ja' ? '<span class="lang-hint">おすすめ</span>' : ''}
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Bind click events
+    const buttons = overlay.querySelectorAll('.lang-btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const lang = btn.dataset.lang;
+            selectLanguage(lang);
+            overlay.remove();
+        });
+    });
+
+    return overlay;
+}
+
+function selectLanguage(lang) {
+    i18n.setLanguage(lang);
+    if (elements.languageSelect) {
+        elements.languageSelect.value = lang;
+    }
+    localStorage.setItem('loanCalc_language', lang);
+}
+
+// Load saved preferences from localStorage
 function loadPreferences() {
     const savedLang = localStorage.getItem('loanCalc_language');
     const savedTheme = localStorage.getItem('loanCalc_theme');
@@ -134,6 +333,11 @@ function loadPreferences() {
     if (savedLang) {
         elements.languageSelect.value = savedLang;
         i18n.setLanguage(savedLang);
+    } else {
+        // Enforce Chinese Priority
+        elements.languageSelect.value = 'zh';
+        i18n.setLanguage('zh');
+        // i18n class defaults to 'zh' anyway, but this ensures UI sync
     }
 
     if (savedTheme) {
@@ -146,6 +350,31 @@ function loadPreferences() {
         elements.currencySelect.value = savedCurrency;
         i18n.setCurrency(savedCurrency);
     }
+
+    // Load saved font
+    const savedFont = localStorage.getItem('loanCalc_font');
+    if (savedFont && elements.fontSelect) {
+        elements.fontSelect.value = savedFont;
+    } else if (elements.fontSelect) {
+        // Set default font if no saved preference
+        elements.fontSelect.value = 'YuPearl-Medium';
+    }
+
+    // Font size - enforced to small (10px)
+    // setFontSize('small');
+}
+
+// Set font size
+function setFontSize(size) {
+    const html = document.documentElement;
+    html.classList.remove('font-medium', 'font-large');
+
+    if (size === 'medium') {
+        html.classList.add('font-medium');
+    } else if (size === 'large') {
+        html.classList.add('font-large');
+    }
+    // 'small' is the default, no class needed
 }
 
 // Set up all event listeners
@@ -163,13 +392,18 @@ function setupEventListeners() {
         }
 
         updateMonthlyPaymentLabel();
+
+        // Update total costs display to reflect new language
+        updateTotalCosts();
     });
 
-    // Theme toggle
+    // Theme toggle - 點擊切換到下一個主題
     elements.themeToggle.addEventListener('click', () => {
+        // 切換到下一個主題
         currentThemeIndex = (currentThemeIndex + 1) % themes.length;
         const theme = themes[currentThemeIndex];
 
+        // 添加動畫效果
         elements.themeToggle.classList.add('switching');
         setTimeout(() => {
             elements.themeToggle.classList.remove('switching');
@@ -185,15 +419,34 @@ function setupEventListeners() {
         i18n.setCurrency(currency);
         localStorage.setItem('loanCalc_currency', currency);
 
+        // Update displayed values if results exist
         if (currentResults) {
             displayResults(currentResults);
         }
     });
 
-    // Loan type change
+    // Font size change - removed
+
+    // Web Version Buttons
+    const openWeb = () => {
+        chrome.tabs.create({ url: 'https://kaku88life.github.io/Personal-Loan-calculator/' });
+    };
+
+    const webLinkBtn = document.getElementById('webLinkBtn');
+    if (webLinkBtn) {
+        webLinkBtn.addEventListener('click', openWeb);
+    }
+
+    const fullFunctionBtn = document.getElementById('fullFunctionBtn');
+    if (fullFunctionBtn) {
+        fullFunctionBtn.addEventListener('click', openWeb);
+    }
+
+    // Loan type change - update default term, ratio, amount, rate and handle custom type
     elements.loanTypeSelect.addEventListener('change', (e) => {
         const loanType = e.target.value;
 
+        // Show/hide custom loan type input
         if (loanType === 'other') {
             elements.customLoanType.classList.remove('hidden');
             elements.customLoanType.focus();
@@ -201,13 +454,40 @@ function setupEventListeners() {
             elements.customLoanType.classList.add('hidden');
         }
 
+        // Update default product amount based on loan type
+        if (defaultLoanAmounts[loanType] && elements.productAmount) {
+            elements.productAmount.value = i18n.formatNumber(defaultLoanAmounts[loanType]);
+        }
+
+        // Update default loan term based on loan type
         if (defaultLoanTerms[loanType]) {
             elements.loanTerm.value = defaultLoanTerms[loanType];
         }
 
+        // Update default loan ratio based on loan type
         if (defaultLoanRatios[loanType]) {
             elements.loanRatio.value = defaultLoanRatios[loanType];
         }
+
+        // Update default interest rate based on loan type
+        if (defaultInterestRates[loanType] && elements.interestRate) {
+            elements.interestRate.value = defaultInterestRates[loanType];
+        }
+
+        // Update productAmount label based on loan type
+        const productAmountLabel = document.querySelector('label[data-i18n="productAmount"], label[data-i18n="productAmountPersonal"]');
+        if (productAmountLabel) {
+            if (loanType === 'personal') {
+                productAmountLabel.setAttribute('data-i18n', 'productAmountPersonal');
+                productAmountLabel.textContent = i18n.t('productAmountPersonal');
+            } else {
+                productAmountLabel.setAttribute('data-i18n', 'productAmount');
+                productAmountLabel.textContent = i18n.t('productAmount');
+            }
+        }
+
+        // Recalculate loan amount after updating all fields
+        updateLoanAmount();
     });
 
     // Grace period toggle
@@ -221,21 +501,6 @@ function setupEventListeners() {
         });
     }
 
-    // Details toggle (show/hide total payment & interest)
-    if (elements.detailsToggle) {
-        elements.detailsToggle.addEventListener('click', () => {
-            const container = elements.detailsContainer;
-            const icon = elements.detailsToggleIcon;
-            if (container.style.display === 'none') {
-                container.style.display = 'grid';
-                icon.textContent = '−';
-            } else {
-                container.style.display = 'none';
-                icon.textContent = '+';
-            }
-        });
-    }
-
     // Share dropdown toggle
     if (elements.shareDropdownBtn) {
         elements.shareDropdownBtn.addEventListener('click', (e) => {
@@ -244,6 +509,7 @@ function setupEventListeners() {
             dropdown.classList.toggle('active');
         });
 
+        // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             const dropdown = elements.shareDropdownBtn.parentElement;
             if (!dropdown.contains(e.target)) {
@@ -295,6 +561,7 @@ function setupEventListeners() {
             dropdown.classList.toggle('active');
         });
 
+        // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             const dropdown = elements.settingsToggle.parentElement;
             if (!dropdown.contains(e.target)) {
@@ -303,32 +570,35 @@ function setupEventListeners() {
         });
     }
 
-    // Grace payment toggle
+    // Grace payment toggle (switch between grace period and post-grace period display)
     if (elements.gracePaymentToggle) {
         elements.gracePaymentToggle.addEventListener('change', (e) => {
             updateGracePaymentDisplay();
         });
     }
 
-    // Fullscreen buttons
-    document.querySelectorAll('.btn-fullscreen').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const target = btn.dataset.target;
-            openFullscreen(target);
+    // Expand buttons
+    if (elements.expandPaymentChart) {
+        elements.expandPaymentChart.addEventListener('click', () => {
+            openFullscreen('paymentChart', i18n.t('paymentChart'));
         });
-    });
+    }
+
+    if (elements.expandBalanceChart) {
+        elements.expandBalanceChart.addEventListener('click', () => {
+            openFullscreen('balanceChart', i18n.t('balanceChart'));
+        });
+    }
+
+    if (elements.expandTable) {
+        elements.expandTable.addEventListener('click', () => {
+            openFullscreen('table', i18n.t('amortizationSchedule'));
+        });
+    }
 
     // Fullscreen close
     if (elements.fullscreenClose) {
         elements.fullscreenClose.addEventListener('click', closeFullscreen);
-    }
-
-    if (elements.fullscreenModal) {
-        elements.fullscreenModal.addEventListener('click', (e) => {
-            if (e.target === elements.fullscreenModal) {
-                closeFullscreen();
-            }
-        });
     }
 
     // Payment method change
@@ -342,18 +612,40 @@ function setupEventListeners() {
     // Calculate button
     elements.calculateBtn.addEventListener('click', calculate);
 
+    // Reset button
+    if (elements.resetBtn) {
+        elements.resetBtn.addEventListener('click', resetForm);
+    }
+
     // Export buttons
     elements.exportCSV.addEventListener('click', exportToCSV);
     elements.exportExcel.addEventListener('click', exportToExcel);
     elements.exportPDF.addEventListener('click', exportToPDF);
     elements.shareBtn.addEventListener('click', shareResults);
 
-    // Enter key to calculate
+    // Enter key to calculate (only when no modal is open)
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+        // Skip if a modal is open (cost modal or confirm modal)
+        const hasOpenModal = document.querySelector('.cost-modal-overlay') ||
+            document.querySelector('.modal-overlay.active');
+        if (hasOpenModal) return;
+
+        // Skip for buttons and selects
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+
+        if (e.key === 'Enter') {
+            e.preventDefault();
             calculate();
         }
     });
+
+    // Font selector change
+    if (elements.fontSelect) {
+        elements.fontSelect.addEventListener('change', (e) => {
+            const font = e.target.value;
+            localStorage.setItem('loanCalc_font', font);
+        });
+    }
 
     // Add thousand separator formatting to amount input
     if (elements.loanAmount) {
@@ -386,10 +678,12 @@ function setupEventListeners() {
 function setTheme(theme) {
     document.body.className = `theme-${theme}`;
 
+    // Update icon
     if (elements.themeIcon) {
         elements.themeIcon.textContent = themeIcons[theme];
     }
 
+    // Update toggle button title
     if (elements.themeToggle) {
         const titles = {
             light: i18n.t('themeLight'),
@@ -399,6 +693,7 @@ function setTheme(theme) {
         elements.themeToggle.title = titles[theme] || theme;
     }
 
+    // Update charts if they exist
     if (paymentChart || balanceChart) {
         updateChartsTheme();
     }
@@ -422,35 +717,339 @@ function getThemeColors() {
 function updateMonthlyPaymentLabel() {
     const label = document.querySelector('.card h3[data-i18n="monthlyPayment"]');
     if (label) {
-        const hasGrace = parseInt(elements.gracePeriod?.value || 0) > 0;
-        const isEqualPrincipal = elements.paymentMethod.value === 'equalPrincipal';
-
-        if (hasGrace || isEqualPrincipal) {
-            label.setAttribute('data-i18n', 'monthlyPaymentRange');
-            label.textContent = i18n.t('monthlyPaymentRange');
-        } else {
-            label.setAttribute('data-i18n', 'monthlyPayment');
-            label.textContent = i18n.t('monthlyPayment');
-        }
+        // Always use clean monthlyPayment label without parentheses
+        label.setAttribute('data-i18n', 'monthlyPayment');
+        label.textContent = i18n.t('monthlyPayment');
     }
 }
 
-// Add cost item
+// Add cost item with modal dialog
+// Add cost item with modal dialog
 function addCostItem() {
-    const costItem = document.createElement('div');
-    costItem.className = 'cost-item';
-    costItem.innerHTML = `
-        <input type="text" class="cost-name" placeholder="${i18n.t('costNamePlaceholder')}">
-        <input type="number" class="cost-amount" placeholder="${i18n.t('costAmountPlaceholder')}" min="0" step="100">
-        <button type="button" class="btn-remove" onclick="removeCostItem(this)">&times;</button>
+    // Create modal dialog
+    const modal = document.createElement('div');
+    modal.className = 'cost-modal-overlay';
+
+    // Default values from main loan
+    const mainRate = elements.interestRate ? elements.interestRate.value : '2.0';
+    const mainTerm = elements.loanTerm ? elements.loanTerm.value : '30';
+
+    // Generate formatted buttons
+    const relatedBtnHtml = createCostButtonHtml(i18n.t('costRelated'), 'related', true);
+    const unrelatedBtnHtml = createCostButtonHtml(i18n.t('costUnrelated'), 'unrelated', false);
+
+    modal.innerHTML = `
+        <div class="cost-modal">
+            <h3>${i18n.t('additionalCosts')}</h3>
+            <div class="cost-modal-body">
+                <div class="form-group">
+                    <label>${i18n.t('costNamePlaceholder')}</label>
+                    <input type="text" id="costNameInput" class="cost-modal-input" placeholder="${i18n.t('costNamePlaceholder')}" autofocus>
+                </div>
+                <div class="form-group">
+                    <label>${i18n.t('costAmountPlaceholder')}</label>
+                    <input type="text" id="costAmountInput" class="cost-modal-input" placeholder="0" inputmode="numeric">
+                </div>
+
+                <div class="cost-payment-mode">
+                    <label>${i18n.t('costPaymentMode')}</label>
+                    <div class="mode-options">
+                        <div class="mode-option selected" data-value="upfront">
+                            ${i18n.t('costOneTime')}
+                        </div>
+                        <div class="mode-option" data-value="financed">
+                             ${i18n.t('costFinanced')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cost Type Selection (Related vs Unrelated) -->
+                 <div class="form-group" style="margin-top: 12px;">
+                    <label>${i18n.t('costType')}</label>
+                    <div class="toggle-group" style="display: flex; gap: 8px;">
+                         ${relatedBtnHtml}
+                         ${unrelatedBtnHtml}
+                    </div>
+                </div>
+
+                <div class="cost-finance-details" id="costFinanceDetails">
+                    <div class="form-group">
+                         <label>${i18n.t('costFinancedRate')}</label>
+                         <input type="number" id="costRateInput" class="cost-modal-input" value="${mainRate}" step="0.01">
+                    </div>
+                    <div class="form-group">
+                         <label>${i18n.t('costFinancedTerm')} (${i18n.t('years')})</label>
+                         <input type="number" id="costTermInput" class="cost-modal-input" value="${mainTerm}" step="1">
+                    </div>
+                    <div class="form-group">
+                         <label>${i18n.t('costLoanRatio')}</label>
+                         <input type="number" id="costRatioInput" class="cost-modal-input" value="100" max="100" min="0" step="1">
+                    </div>
+                    <div class="form-group">
+                         <label>${i18n.t('costGracePeriod')} (${i18n.t('years')})</label>
+                         <input type="number" id="costGraceInput" class="cost-modal-input" value="0" min="0" step="1">
+                    </div>
+                </div>
+            </div>
+            <div class="cost-modal-footer">
+                <button type="button" class="btn-cancel">取消</button>
+                <button type="button" class="btn-confirm">確認</button>
+            </div>
+        </div>
     `;
 
-    elements.costsContainer.appendChild(costItem);
+    document.body.appendChild(modal);
 
-    const amountInput = costItem.querySelector('.cost-amount');
-    amountInput.addEventListener('input', updateTotalCosts);
+    const nameInput = modal.querySelector('#costNameInput');
+    const amountInput = modal.querySelector('#costAmountInput');
+    const rateInput = modal.querySelector('#costRateInput');
+    const termInput = modal.querySelector('#costTermInput');
+    const ratioInput = modal.querySelector('#costRatioInput');
+    const graceInput = modal.querySelector('#costGraceInput');
+    const confirmBtn = modal.querySelector('.btn-confirm');
+    const cancelBtn = modal.querySelector('.btn-cancel');
+    const financeDetails = modal.querySelector('#costFinanceDetails');
+    const modeOptions = modal.querySelectorAll('.mode-option');
+    const typeOptions = modal.querySelectorAll('.type-option');
+    let currentMode = 'upfront';
+    let currentType = 'related';
 
-    costItem.querySelector('.cost-name').focus();
+    // Focus on name input
+    setTimeout(() => nameInput.focus(), 100);
+
+    // Format amount input with thousand separators
+    amountInput.addEventListener('input', (e) => {
+        // Remove non-numeric chars except dot
+        let value = e.target.value.replace(/[^\d.]/g, '');
+
+        // Handle multiple dots
+        const parts = value.split('.');
+        if (parts.length > 2) {
+            value = parts[0] + '.' + parts.slice(1).join('');
+        }
+
+        // Add thousand separators to integer part
+        if (value) {
+            const integerPart = parts[0];
+            const decimalPart = parts.length > 1 ? '.' + parts[1] : '';
+
+            const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            e.target.value = formattedInteger + decimalPart;
+        }
+    });
+
+    // Toggle Mode
+    modeOptions.forEach(opt => {
+        opt.addEventListener('click', () => {
+            modeOptions.forEach(o => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            currentMode = opt.dataset.value;
+            if (currentMode === 'financed') {
+                financeDetails.classList.add('active');
+            } else {
+                financeDetails.classList.remove('active');
+            }
+        });
+    });
+
+    // Toggle Type
+    typeOptions.forEach(opt => {
+        opt.addEventListener('click', () => {
+            typeOptions.forEach(o => {
+                o.classList.remove('selected');
+                o.style.borderColor = 'var(--border-color)';
+                o.style.backgroundColor = 'var(--bg-secondary)';
+                o.style.color = 'var(--text-primary)';
+            });
+            opt.classList.add('selected');
+            opt.style.borderColor = 'var(--accent-color)';
+            opt.style.backgroundColor = 'var(--accent-color)';
+            opt.style.color = 'white';
+            currentType = opt.dataset.value;
+        });
+    });
+
+    // Initialize first type option style
+    const selectedType = modal.querySelector('.type-option.selected');
+    if (selectedType) {
+        selectedType.style.borderColor = 'var(--accent-color)';
+        selectedType.style.backgroundColor = 'var(--accent-color)';
+        selectedType.style.color = 'white';
+    }
+
+    // Enhance new number inputs
+    [rateInput, termInput, ratioInput, graceInput].forEach(input => {
+        // Wait for them to be visible/in DOM properly
+        setTimeout(() => enhanceToNumberInput(input), 0);
+    });
+
+    // Close modal function
+    const closeModal = () => {
+        modal.remove();
+    };
+
+    // Cancel button
+    cancelBtn.addEventListener('click', closeModal);
+
+    // Click outside to close - DISABLED per user request
+    // modal.addEventListener('click', (e) => {
+    //    if (e.target === modal) closeModal();
+    // });
+
+    // Confirm button - add cost to list
+    const confirmAdd = () => {
+        const name = nameInput.value.trim();
+        // Amount is parsed later to handle commas
+        const rate = parseFloat(rateInput.value);
+        const term = parseFloat(termInput.value);
+        const ratio = parseFloat(ratioInput.value);
+        const grace = parseFloat(graceInput.value);
+
+        if (!name) {
+            alert(i18n.t('costNamePlaceholder') || '請輸入項目名稱');
+            nameInput.focus();
+            return;
+        }
+
+        // Parse amount (remove commas)
+        const rawAmount = amountInput.value.replace(/,/g, '');
+        const amount = parseFloat(rawAmount);
+
+        if (isNaN(amount) || amount <= 0) {
+            alert(i18n.t('alertInvalidAmount') || '請輸入有效的金額');
+            amountInput.focus();
+            return;
+        }
+
+        // Validate finance details
+        if (currentMode === 'financed') {
+            if (isNaN(rate) || rate < 0) {
+                alert(i18n.t('alertInvalidRate') || '請輸入有效的利率');
+                rateInput.focus();
+                return;
+            }
+            if (isNaN(term) || term <= 0) {
+                alert(i18n.t('alertInvalidTerm') || '請輸入有效的年限');
+                termInput.focus();
+                return;
+            }
+        }
+
+        // Create cost item in list
+        const costItem = document.createElement('div');
+        costItem.className = 'cost-item';
+
+        // Badge for financed items
+        const badgeHtml = currentMode === 'financed'
+            ? `<span class="payment-mode-badge financed" data-i18n="costFinanced">${i18n.t('costFinanced')}</span>`
+            : '';
+
+        costItem.innerHTML = `
+            <div class="cost-info">
+                <span class="cost-name">${name}</span>
+                ${badgeHtml}
+            </div>
+            <span class="cost-amount">${i18n.getCurrencySymbol()} ${amount.toLocaleString()}</span>
+            <button type="button" class="btn-remove" onclick="removeCostItem(this)">&times;</button>
+        `;
+
+        // Store data in element for calculation
+        costItem.dataset.name = name;
+        costItem.dataset.amount = amount;
+        costItem.dataset.mode = currentMode;
+        if (currentMode === 'financed') {
+            costItem.dataset.rate = rate;
+            costItem.dataset.term = term;
+            costItem.dataset.loanRatio = ratio;
+            costItem.dataset.gracePeriod = grace;
+        }
+        costItem.dataset.type = currentType;
+
+        elements.costsContainer.appendChild(costItem);
+        updateTotalCosts();
+        closeModal();
+    };
+
+    confirmBtn.addEventListener('click', confirmAdd);
+
+    // Handle Enter key on inputs
+    const handleKeydown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            confirmAdd();
+        }
+    };
+
+    [nameInput, amountInput, rateInput, termInput, ratioInput, graceInput].forEach(input => {
+        input.addEventListener('keydown', handleKeydown);
+    });
+}
+
+// Custom Confirm Modal
+function showConfirmModal(title, message, onConfirm) {
+    const modal = document.createElement('div');
+    modal.className = 'cost-modal-overlay'; // Reuse overlay style
+    modal.style.zIndex = '10002'; // Ensure it's on top
+
+    modal.innerHTML = `
+        <div class="cost-modal" style="width: 90%; max-width: 400px; max-height: 90vh; overflow-y: auto;">
+            <h3>${title}</h3>
+            <div class="cost-modal-body">
+                <p style="margin: 0; color: var(--text-primary); font-size: 1.05rem;">${message}</p>
+            </div>
+            <div class="cost-modal-footer">
+                <button type="button" class="btn-cancel">取消</button>
+                <button type="button" class="btn-confirm">確認</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const confirmBtn = modal.querySelector('.btn-confirm');
+    const cancelBtn = modal.querySelector('.btn-cancel');
+
+    const closeModal = () => {
+        modal.classList.add('fade-out'); // Optional: Add fade out class if styles exist
+        setTimeout(() => modal.remove(), 200);
+    };
+
+    confirmBtn.addEventListener('click', () => {
+        onConfirm();
+        closeModal();
+    });
+
+    cancelBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    // Handle Enter and Escape keys
+    const handleKeydown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation(); // Stop propagation to prevent triggering background elements
+            onConfirm();
+            cleanup();
+            closeModal();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cleanup();
+            closeModal();
+        }
+    };
+
+    const cleanup = () => {
+        document.removeEventListener('keydown', handleKeydown);
+    };
+
+    // Add keydown listener
+    document.addEventListener('keydown', handleKeydown);
+
+    // Focus confirm button by default so Enter works naturally even without the listener (as a backup)
+    // and to ensure focus is trapped/handled correctly
+    setTimeout(() => confirmBtn.focus(), 50);
 }
 
 // Remove cost item
@@ -463,24 +1062,96 @@ function removeCostItem(button) {
     }, 280);
 }
 
+// Reset form to default values
+function resetForm() {
+    showConfirmModal(
+        i18n.t('reset') || '重置',
+        i18n.t('confirmReset') || '確定要重置所有輸入嗎？',
+        () => {
+            // Reset loan type
+            elements.loanTypeSelect.value = 'mortgage';
+            elements.customLoanType.classList.add('hidden');
+
+            // Reset loan amount (with thousand separator)
+            elements.loanAmount.value = formatWithThousandSeparator(10000000);  // 改為 1000 萬
+
+            // Reset loan ratio, term, and rate
+            elements.loanRatio.value = '80';
+            elements.loanTerm.value = '30';
+            elements.interestRate.value = '2.5';  // 改為 2.5%
+
+            // Reset grace period
+            if (elements.gracePeriodToggle) {
+                elements.gracePeriodToggle.checked = false;
+                elements.gracePeriodInputs.classList.remove('active');
+            }
+            if (elements.gracePeriod) {
+                elements.gracePeriod.value = '1';
+            }
+            if (elements.gracePeriodUnit) {
+                elements.gracePeriodUnit.value = 'years';
+            }
+
+            // Reset payment method
+            elements.paymentMethod.value = 'equalPayment';
+
+            // Clear all cost items
+            elements.costsContainer.innerHTML = '';
+            updateTotalCosts();
+
+            // Hide results section
+            if (elements.resultsSection) {
+                elements.resultsSection.style.display = 'none';
+            }
+
+            // Clear current results
+            currentResults = null;
+            currentSummary = null;
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            console.log('Form reset to default values');
+        }
+    );
+}
+
 // Update total additional costs display
 function updateTotalCosts() {
     const costs = getAdditionalCosts();
-    const total = costs.reduce((sum, cost) => sum + cost.amount, 0);
-    elements.totalCostsValue.textContent = i18n.formatCurrency(total);
+    const upfrontTotal = costs
+        .filter(c => c.mode !== 'financed')
+        .reduce((sum, cost) => sum + cost.amount, 0);
+
+    const financedTotal = costs
+        .filter(c => c.mode === 'financed')
+        .reduce((sum, cost) => sum + cost.amount, 0);
+
+    let text = i18n.formatCurrency(upfrontTotal);
+    if (financedTotal > 0) {
+        text += ` + ${i18n.formatCurrency(financedTotal)} (${i18n.t('costFinanced')})`;
+    }
+
+    elements.totalCosts.textContent = text;
 }
 
 // Get additional costs from inputs
 function getAdditionalCosts() {
-    const costItems = elements.costsContainer.querySelectorAll('.cost-item');
     const costs = [];
+    const costItems = elements.costsContainer.querySelectorAll('.cost-item');
 
     costItems.forEach(item => {
-        const name = item.querySelector('.cost-name').value.trim();
-        const amount = parseFloat(item.querySelector('.cost-amount').value) || 0;
+        const name = item.dataset.name;
+        const amount = parseFloat(item.dataset.amount);
+        const mode = item.dataset.mode || 'upfront';
+        const type = item.dataset.type || 'related';
+        const rate = parseFloat(item.dataset.rate || 0);
+        const term = parseFloat(item.dataset.term || 0);
+        const loanRatio = parseFloat(item.dataset.loanRatio || 100);
+        const gracePeriod = parseFloat(item.dataset.gracePeriod || 0);
 
-        if (name && amount > 0) {
-            costs.push({ name, amount });
+        if (name && !isNaN(amount) && amount > 0) {
+            costs.push({ name, amount, mode, type, rate, term, loanRatio, gracePeriod });
         }
     });
 
@@ -550,23 +1221,51 @@ function parseFormattedNumber(value) {
 function formatNumberInput(input) {
     const cursorPos = input.selectionStart;
     const oldValue = input.value;
-    const oldLength = oldValue.length;
 
+    // Count how many digits are before the cursor position
+    let digitsBeforeCursor = 0;
+    for (let i = 0; i < cursorPos && i < oldValue.length; i++) {
+        if (/\d/.test(oldValue[i])) {
+            digitsBeforeCursor++;
+        }
+    }
+
+    // Remove non-digit characters except dot
     let cleaned = oldValue.replace(/[^\d.]/g, '');
 
+    // Handle multiple dots - keep only the first one
+    const dotIndex = cleaned.indexOf('.');
+    if (dotIndex !== -1) {
+        cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1).replace(/\./g, '');
+    }
+
+    // Split by dot for decimal handling
     const parts = cleaned.split('.');
     const integerPart = parts[0];
     const decimalPart = parts.length > 1 ? parts[1] : '';
 
+    // Add thousand separators to integer part
     const formatted = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-    const newValue = decimalPart ? `${formatted}.${decimalPart}` : formatted;
+    // Combine with decimal if exists
+    const newValue = decimalPart !== '' || oldValue.includes('.') ? `${formatted}.${decimalPart}` : formatted;
 
     input.value = newValue;
 
-    const newLength = newValue.length;
-    const diff = newLength - oldLength;
-    const newCursorPos = cursorPos + diff;
+    // Find the new cursor position by counting digits
+    let newCursorPos = 0;
+    let digitCount = 0;
+    for (let i = 0; i < newValue.length && digitCount < digitsBeforeCursor; i++) {
+        if (/\d/.test(newValue[i])) {
+            digitCount++;
+        }
+        newCursorPos = i + 1;
+    }
+
+    // Handle case when cursor was after all digits
+    if (digitCount < digitsBeforeCursor) {
+        newCursorPos = newValue.length;
+    }
 
     input.setSelectionRange(newCursorPos, newCursorPos);
 }
@@ -576,6 +1275,7 @@ function calculate() {
     if (!validateInputs()) return;
 
     const amount = parseFormattedNumber(elements.loanAmount.value);
+    const productAmount = parseFormattedNumber(elements.productAmount.value);
     const ratio = parseFloat(elements.loanRatio.value) || 100;
     const rate = parseFloat(elements.interestRate.value);
     const term = parseFloat(elements.loanTerm.value);
@@ -583,61 +1283,93 @@ function calculate() {
     const method = elements.paymentMethod.value;
     const costs = getAdditionalCosts();
 
-    calculator.setParams(amount, ratio, rate, term, gracePeriod, method);
+    // Set calculator parameters
+    calculator.setParams(amount, ratio, rate, term, gracePeriod, method, productAmount);
     calculator.setAdditionalCosts(costs);
 
+    // Calculate
     currentResults = calculator.calculate();
     currentSummary = calculator.getSummary();
 
+    // Display results
     displayResults(currentResults);
-    updateCharts(currentResults);
-    populateTable(currentResults.schedule);
+
+    // Update charts - removed
+    // updateCharts(currentResults);
+
+    // Populate table - removed
+    // populateTable(currentResults.schedule);
+
+    // Update monthly payment label
     updateMonthlyPaymentLabel();
 
+    // Show results section with animation
     elements.resultsSection.style.display = 'block';
     elements.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // Display calculation results
 function displayResults(results) {
+    // Check if there's a grace period
     const hasGracePeriod = results.graceMonths > 0;
 
-    if (hasGracePeriod) {
-        elements.graceToggleContainer.style.display = 'block';
-        elements.monthlyPaymentValue.style.display = 'none';
+    // Monthly payment - use grace payment value element
+    const toggleContainer = document.querySelector('.grace-payment-toggle');
 
-        elements.graceToggleContainer.dataset.gracePayment = results.monthlyPaymentFirst;
-        elements.graceToggleContainer.dataset.postGracePayment = results.monthlyPaymentLast;
+    if (hasGracePeriod && toggleContainer) {
+        // Show toggle UI and store values
+        toggleContainer.style.display = 'flex';
+        toggleContainer.dataset.gracePayment = results.monthlyPaymentFirst;
+        toggleContainer.dataset.postGracePayment = results.monthlyPaymentLast;
 
+        // Update display based on toggle state
         updateGracePaymentDisplay();
     } else {
-        elements.graceToggleContainer.style.display = 'none';
-        elements.monthlyPaymentValue.style.display = 'block';
+        // No grace period, hide toggle and show single payment value
+        if (toggleContainer) {
+            toggleContainer.style.display = 'none';
+        }
 
-        if (results.monthlyPayment !== null) {
-            elements.monthlyPaymentValue.textContent = i18n.formatCurrency(results.monthlyPayment);
-        } else {
-            elements.monthlyPaymentValue.textContent =
-                `${i18n.formatCurrency(results.monthlyPaymentFirst)} ~ ${i18n.formatCurrency(results.monthlyPaymentLast)}`;
+        if (elements.gracePaymentValue) {
+            if (results.monthlyPayment !== null) {
+                elements.gracePaymentValue.textContent = i18n.formatCurrency(results.monthlyPayment);
+            } else {
+                elements.gracePaymentValue.textContent =
+                    `${i18n.formatCurrency(results.monthlyPaymentFirst)} ~ ${i18n.formatCurrency(results.monthlyPaymentLast)}`;
+            }
         }
     }
 
-    elements.totalPaymentValue.textContent = i18n.formatCurrency(results.totalPayment);
-    elements.totalInterestValue.textContent = i18n.formatCurrency(results.totalInterest);
-    // totalCostValue removed - field no longer exists
+    // Total payment
+    if (elements.totalPayment) {
+        elements.totalPayment.textContent = i18n.formatCurrency(results.totalPayment);
+    }
 
-    if (elements.aprValue) {
-        elements.aprValue.textContent = i18n.formatPercent(results.apr);
+    // Total interest
+    if (elements.totalInterest) {
+        elements.totalInterest.textContent = i18n.formatCurrency(results.totalInterest);
+    }
+
+    // APR
+    if (elements.apr) {
+        elements.apr.textContent = i18n.formatPercent(results.apr);
+    }
+
+    // Total Down Payment
+    const totalDownPaymentValue = document.getElementById('totalDownPaymentValue');
+    if (totalDownPaymentValue) {
+        totalDownPaymentValue.textContent = i18n.formatCurrency(results.totalDownPayment);
     }
 }
 
 // Update grace payment display based on toggle state
 function updateGracePaymentDisplay() {
-    if (!elements.graceToggleContainer || !elements.gracePaymentValue) return;
+    const toggleContainer = document.querySelector('.grace-payment-toggle');
+    if (!toggleContainer || !elements.gracePaymentValue) return;
 
     const isPostGrace = elements.gracePaymentToggle?.checked;
-    const gracePayment = parseFloat(elements.graceToggleContainer.dataset.gracePayment) || 0;
-    const postGracePayment = parseFloat(elements.graceToggleContainer.dataset.postGracePayment) || 0;
+    const gracePayment = parseFloat(toggleContainer.dataset.gracePayment) || 0;
+    const postGracePayment = parseFloat(toggleContainer.dataset.postGracePayment) || 0;
 
     const displayValue = isPostGrace ? postGracePayment : gracePayment;
     elements.gracePaymentValue.textContent = i18n.formatCurrency(displayValue);
@@ -645,139 +1377,149 @@ function updateGracePaymentDisplay() {
 
 // Update charts
 function updateCharts(results) {
-    const chartData = calculator.getChartData();
-    const colors = getThemeColors();
-
-    // Payment trend chart
-    const paymentCtx = document.getElementById('paymentChart').getContext('2d');
-
-    if (paymentChart) {
-        paymentChart.destroy();
-    }
-
-    paymentChart = new Chart(paymentCtx, {
-        type: 'line',
-        data: {
-            labels: chartData.labels,
-            datasets: [{
-                label: i18n.t('paymentAmount'),
-                data: chartData.payments,
-                borderColor: colors.accent,
-                backgroundColor: colors.accent + '20',
-                fill: true,
-                tension: 0.4,
-                pointRadius: chartData.labels.length > 60 ? 0 : 2,
-                pointHoverRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (context) => {
-                            return `${context.dataset.label}: ${i18n.formatCurrency(context.raw)}`;
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    title: {
-                        display: false
-                    },
-                    ticks: { color: colors.textMuted, font: { size: 10 } },
-                    grid: { color: colors.grid }
-                },
-                y: {
-                    title: {
-                        display: false
-                    },
-                    ticks: {
-                        color: colors.textMuted,
-                        font: { size: 10 },
-                        callback: (value) => i18n.formatNumber(value)
-                    },
-                    grid: { color: colors.grid }
-                }
-            }
-        }
-    });
-
-    // Balance chart
-    const balanceCtx = document.getElementById('balanceChart').getContext('2d');
-
-    if (balanceChart) {
-        balanceChart.destroy();
-    }
-
-    balanceChart = new Chart(balanceCtx, {
-        type: 'line',
-        data: {
-            labels: chartData.labels,
-            datasets: [
-                {
-                    label: i18n.t('principalPaid'),
-                    data: chartData.cumulativePrincipal,
-                    borderColor: colors.success,
-                    backgroundColor: colors.success + '20',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: chartData.labels.length > 60 ? 0 : 2,
-                    pointHoverRadius: 4
-                },
-                {
-                    label: i18n.t('interestPaid'),
-                    data: chartData.cumulativeInterest,
-                    borderColor: colors.warning,
-                    backgroundColor: colors.warning + '20',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: chartData.labels.length > 60 ? 0 : 2,
-                    pointHoverRadius: 4
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'bottom',
-                    labels: { color: colors.text, font: { size: 10 } }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (context) => {
-                            return `${context.dataset.label}: ${i18n.formatCurrency(context.raw)}`;
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    title: { display: false },
-                    ticks: { color: colors.textMuted, font: { size: 10 } },
-                    grid: { color: colors.grid }
-                },
-                y: {
-                    title: { display: false },
-                    ticks: {
-                        color: colors.textMuted,
-                        font: { size: 10 },
-                        callback: (value) => i18n.formatNumber(value)
-                    },
-                    grid: { color: colors.grid }
-                }
-            }
-        }
-    });
+    // Feature removed
 }
+
+
+/* paymentChart = new Chart(paymentCtx, {
+    type: 'line',
+    data: {
+        labels: chartData.labels,
+        datasets: [{
+            label: i18n.t('paymentAmount'),
+            data: chartData.payments,
+            borderColor: colors.accent,
+            backgroundColor: colors.accent + '20',
+            fill: true,
+            fill: true,
+            stepped: true,  // 階梯狀：寬限期與還款期之間垂直90度變化，期間內水平
+            pointStyle: 'rectRot', // Diamond shape
+            pointRadius: 3.5, // Reduced 30% from 5
+            pointHoverRadius: 6, // Slightly enlarged
+            pointBackgroundColor: colors.bg,
+            pointBorderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                labels: { color: colors.text }
+            },
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        return `${context.dataset.label}: ${i18n.formatCurrency(context.raw)}`;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: i18n.t('period'),
+                    color: colors.textMuted
+                },
+                ticks: { color: colors.textMuted },
+                grid: { color: colors.grid }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: i18n.getCurrencySymbol(),
+                    color: colors.textMuted
+                },
+                ticks: {
+                    color: colors.textMuted,
+                    callback: (value) => i18n.formatNumber(value)
+                },
+                grid: { color: colors.grid }
+            }
+        }
+    }
+}); */
+
+// Balance chart (cumulative principal & interest)
+
+
+/* balanceChart = new Chart(balanceCtx, {
+    type: 'line',
+    data: {
+        labels: chartData.labels,
+        datasets: [
+            {
+                label: i18n.t('principalPaid'),
+                data: chartData.cumulativePrincipal,
+                borderColor: colors.success,
+                label: i18n.t('principalPaid'),
+                data: chartData.cumulativePrincipal,
+                borderColor: colors.success,
+                backgroundColor: colors.success + '20',
+                fill: true,
+                tension: 0.4,  // 平滑曲線，顯示累計成長
+                pointStyle: 'rectRot', // Diamond shape
+                pointRadius: 3.5, // Reduced 30% from 5
+                pointHoverRadius: 6, // Slightly enlarged
+                pointBackgroundColor: colors.bg,
+                pointBorderWidth: 2
+            },
+            {
+                label: i18n.t('interestPaid'),
+                data: chartData.cumulativeInterest,
+                borderColor: colors.warning,
+                backgroundColor: colors.warning + '20',
+                fill: true,
+                tension: 0.4,  // 平滑曲線，顯示累計成長
+                pointStyle: 'rectRot', // Diamond shape
+                pointRadius: 3.5, // Reduced 30% from 5
+                pointHoverRadius: 6, // Slightly enlarged
+                pointBackgroundColor: colors.bg,
+                pointBorderWidth: 2
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                labels: { color: colors.text }
+            },
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        return `${context.dataset.label}: ${i18n.formatCurrency(context.raw)}`;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: i18n.t('period'),
+                    color: colors.textMuted
+                },
+                ticks: { color: colors.textMuted },
+                grid: { color: colors.grid }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: i18n.getCurrencySymbol(),
+                    color: colors.textMuted
+                },
+                ticks: {
+                    color: colors.textMuted,
+                    callback: (value) => i18n.formatNumber(value)
+                },
+                grid: { color: colors.grid }
+            }
+        }
+    }
+}); */
 
 // Update charts theme
 function updateChartsTheme() {
@@ -788,14 +1530,17 @@ function updateChartsTheme() {
 
 // Populate amortization table
 function populateTable(schedule) {
-    elements.amortizationBody.innerHTML = '';
+    // Feature removed
+}
 
-    schedule.forEach(entry => {
-        const row = document.createElement('tr');
-        if (entry.isGracePeriod) {
-            row.className = 'grace-period';
-        }
-        row.innerHTML = `
+/*
+// Show all rows
+schedule.forEach(entry => {
+    const row = document.createElement('tr');
+    if (entry.isGracePeriod) {
+        row.className = 'grace-period';
+    }
+    row.innerHTML = `
             <td>${entry.period}${entry.isGracePeriod ? ' ' + i18n.t('graceLabel') : ''}</td>
             <td>${i18n.formatCurrency(entry.payment)}</td>
             <td>${i18n.formatCurrency(entry.principal)}</td>
@@ -804,9 +1549,10 @@ function populateTable(schedule) {
             <td>${i18n.formatCurrency(entry.cumulativeInterest)}</td>
             <td>${i18n.formatCurrency(entry.remainingBalance)}</td>
         `;
-        elements.amortizationBody.appendChild(row);
-    });
+    elements.amortizationBody.appendChild(row);
+});
 }
+*/
 
 // Export to CSV
 function exportToCSV() {
@@ -825,11 +1571,19 @@ function exportToExcel() {
 }
 
 // Export to PDF
-function exportToPDF() {
+async function exportToPDF() {
     if (!currentResults || !currentSummary) return;
 
+    // Get selected font
+    const selectedFont = elements.fontSelect ? elements.fontSelect.value : 'YuPearl-Medium';
     const filename = `loan_schedule_${new Date().toISOString().slice(0, 10)}.pdf`;
-    downloadPDF(currentResults.schedule, currentSummary, i18n, filename);
+
+    try {
+        await downloadPDF(currentResults.schedule, currentSummary, i18n, selectedFont, filename);
+    } catch (error) {
+        console.error('PDF export failed:', error);
+        alert('PDF 匯出失敗，請稍後再試');
+    }
 }
 
 // Share results
@@ -839,7 +1593,7 @@ async function shareResults() {
     const shareData = {
         title: i18n.t('shareTitle'),
         text: generateShareText(),
-        url: 'https://github.com/kaku88life/personal-Loan-calculator'
+        url: window.location.href
     };
 
     if (navigator.share) {
@@ -851,6 +1605,7 @@ async function shareResults() {
             }
         }
     } else {
+        // Fallback: copy to clipboard
         const text = `${shareData.title}\n\n${shareData.text}\n\n${shareData.url}`;
 
         if (navigator.clipboard) {
@@ -864,6 +1619,49 @@ async function shareResults() {
             fallbackCopy(text);
         }
     }
+}
+
+// Handle custom spinner buttons
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('spinner-btn')) {
+        const btn = e.target;
+        const inputContainer = btn.closest('.input-inline');
+        const input = inputContainer.querySelector('input');
+
+        if (!input) return;
+
+        if (btn.classList.contains('up')) {
+            input.stepUp();
+        } else {
+            input.stepDown();
+        }
+
+        // Trigger input event manually to update calculations
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+});
+
+// Helper to format cost button text
+function createCostButtonHtml(text, value, isSelected) {
+    // Split text by parenthesis if present
+    const match = text.match(/(.*?)\s*(\(.*?\))/);
+
+    let contentHtml = '';
+    if (match) {
+        contentHtml = `
+            <span class="main-text">${match[1]}</span>
+            <span class="sub-text">${match[2]}</span>
+        `;
+    } else {
+        contentHtml = `<span class="main-text">${text}</span>`;
+    }
+
+    return `
+        <div class="type-option ${isSelected ? 'selected' : ''}" data-value="${value}" style="flex: 1; padding: 8px; border: 1px solid var(--border-color); text-align: center; border-radius: var(--border-radius); cursor: pointer; background: var(--bg-secondary); transition: all 0.2s;">
+            ${contentHtml}
+        </div>
+    `;
 }
 
 // Fallback copy function
@@ -909,159 +1707,25 @@ function openChartModal(type) {
     const schedule = currentResults.schedule;
     const maxPeriod = schedule.length;
 
+    // Set modal title
     elements.modalTitle.textContent = type === 'payment'
         ? i18n.t('paymentChart')
         : i18n.t('balanceChart');
 
+    // Configure slider
     elements.periodSlider.max = maxPeriod;
     elements.periodSlider.value = 1;
     elements.periodDisplay.textContent = 1;
 
+    // Update details for period 1
     updatePeriodDetails(1);
 
+    // Show modal
     elements.chartModal.classList.add('active');
 }
 
 function closeChartModal() {
     elements.chartModal.classList.remove('active');
-}
-
-// Fullscreen modal functions
-let fullscreenChart = null;
-
-function openFullscreen(target) {
-    if (!elements.fullscreenModal) return;
-
-    const body = elements.fullscreenBody;
-    body.innerHTML = '';
-
-    if (target === 'paymentChartFull') {
-        elements.fullscreenTitle.textContent = i18n.t('paymentChart');
-        const canvas = document.createElement('canvas');
-        canvas.id = 'paymentChartFull';
-        body.appendChild(canvas);
-
-        // Create enlarged chart
-        const ctx = canvas.getContext('2d');
-        if (fullscreenChart) fullscreenChart.destroy();
-        fullscreenChart = createPaymentChartCopy(ctx);
-
-    } else if (target === 'balanceChartFull') {
-        elements.fullscreenTitle.textContent = i18n.t('balanceChart');
-        const canvas = document.createElement('canvas');
-        canvas.id = 'balanceChartFull';
-        body.appendChild(canvas);
-
-        // Create enlarged chart
-        const ctx = canvas.getContext('2d');
-        if (fullscreenChart) fullscreenChart.destroy();
-        fullscreenChart = createBalanceChartCopy(ctx);
-
-    } else if (target === 'tableFull') {
-        elements.fullscreenTitle.textContent = i18n.t('amortizationSchedule');
-        const tableContainer = document.createElement('div');
-        tableContainer.className = 'table-scroll';
-        tableContainer.innerHTML = document.getElementById('amortizationTable').outerHTML;
-        body.appendChild(tableContainer);
-    }
-
-    elements.fullscreenModal.classList.add('active');
-}
-
-function closeFullscreen() {
-    if (!elements.fullscreenModal) return;
-    elements.fullscreenModal.classList.remove('active');
-    if (fullscreenChart) {
-        fullscreenChart.destroy();
-        fullscreenChart = null;
-    }
-}
-
-function createPaymentChartCopy(ctx) {
-    if (!currentResults) return null;
-
-    const schedule = currentResults.schedule;
-    const labels = schedule.map(item => item.period);
-    const payments = schedule.map(item => item.payment);
-
-    return new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: i18n.t('paymentAmount'),
-                data: payments,
-                borderColor: 'rgb(67, 97, 238)',
-                backgroundColor: 'rgba(67, 97, 238, 0.1)',
-                fill: true,
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: true }
-            },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    ticks: {
-                        callback: value => i18n.formatCurrency(value)
-                    }
-                }
-            }
-        }
-    });
-}
-
-function createBalanceChartCopy(ctx) {
-    if (!currentResults) return null;
-
-    const schedule = currentResults.schedule;
-    const labels = schedule.map(item => item.period);
-    const cumulativePrincipal = schedule.map(item => item.cumulativePrincipal);
-    const cumulativeInterest = schedule.map(item => item.cumulativeInterest);
-
-    return new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: i18n.t('principalPaid'),
-                    data: cumulativePrincipal,
-                    borderColor: 'rgb(16, 185, 129)',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    fill: true,
-                    tension: 0.1
-                },
-                {
-                    label: i18n.t('interestPaid'),
-                    data: cumulativeInterest,
-                    borderColor: 'rgb(245, 158, 11)',
-                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                    fill: true,
-                    tension: 0.1
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: true }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: value => i18n.formatCurrency(value)
-                    }
-                }
-            }
-        }
-    });
 }
 
 function updatePeriodDetails(period) {
@@ -1107,8 +1771,199 @@ function updatePeriodDetails(period) {
     `;
 }
 
+// Fullscreen Modal Functions
+function openFullscreen(type, title) {
+    if (!elements.fullscreenModal) return;
+
+    elements.fullscreenTitle.textContent = title;
+    elements.fullscreenBody.innerHTML = '';
+
+    if (type === 'paymentChart' || type === 'balanceChart') {
+        // Clone the chart canvas and recreate the chart
+        const originalCanvas = document.getElementById(type);
+        const newCanvas = document.createElement('canvas');
+        newCanvas.id = 'fullscreen-' + type;
+        newCanvas.style.width = '100%';
+        newCanvas.style.height = 'calc(100vh - 150px)';
+        elements.fullscreenBody.appendChild(newCanvas);
+
+        // Recreate chart in fullscreen
+        const chartData = calculator.getChartData();
+        const colors = getThemeColors();
+
+        if (type === 'paymentChart') {
+            new Chart(newCanvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: i18n.t('paymentAmount'),
+                        data: chartData.payments,
+                        borderColor: colors.accent,
+                        backgroundColor: colors.accent + '20',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: getChartOptions(colors)
+            });
+        } else {
+            new Chart(newCanvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: i18n.t('principalPaid'),
+                            data: chartData.cumulativePrincipal,
+                            borderColor: colors.success,
+                            backgroundColor: colors.success + '20',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 2,
+                            pointHoverRadius: 5
+                        },
+                        {
+                            label: i18n.t('interestPaid'),
+                            data: chartData.cumulativeInterest,
+                            borderColor: colors.warning,
+                            backgroundColor: colors.warning + '20',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 2,
+                            pointHoverRadius: 5
+                        }
+                    ]
+                },
+                options: getChartOptions(colors)
+            });
+        }
+    } else if (type === 'table') {
+        // Clone the table
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'table-scroll';
+        const table = document.getElementById('amortizationTable').cloneNode(true);
+        tableContainer.appendChild(table);
+        elements.fullscreenBody.appendChild(tableContainer);
+    }
+
+    elements.fullscreenModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeFullscreen() {
+    if (!elements.fullscreenModal) return;
+    elements.fullscreenModal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function getChartOptions(colors) {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                labels: { color: colors.text }
+            },
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        return `${context.dataset.label}: ${i18n.formatCurrency(context.raw)}`;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: i18n.t('period'),
+                    color: colors.textMuted
+                },
+                ticks: { color: colors.textMuted },
+                grid: { color: colors.grid }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: i18n.getCurrencySymbol(),
+                    color: colors.textMuted
+                },
+                ticks: {
+                    color: colors.textMuted,
+                    callback: (value) => i18n.formatNumber(value)
+                },
+                grid: { color: colors.grid }
+            }
+        }
+    };
+}
+
 // Make removeCostItem available globally
 window.removeCostItem = removeCostItem;
 
+// Enhance number inputs with custom spinners
+function enhanceToNumberInput(input) {
+    if (input.dataset.enhanced) return;
+
+    // Wrap input
+    const wrapper = document.createElement('div');
+    wrapper.className = 'spinner-wrapper';
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
+
+    // Create buttons
+    const btns = document.createElement('div');
+    btns.className = 'spinner-btns';
+    btns.innerHTML = `
+        <button type="button" class="spinner-btn up" tabindex="-1">▲</button>
+        <button type="button" class="spinner-btn down" tabindex="-1">▼</button>
+    `;
+    wrapper.appendChild(btns);
+
+    const btnUp = btns.querySelector('.up');
+    const btnDown = btns.querySelector('.down');
+
+    const step = parseFloat(input.step) || 1;
+    const min = input.min !== '' ? parseFloat(input.min) : -Infinity;
+    const max = input.max !== '' ? parseFloat(input.max) : Infinity;
+
+    const updateValue = (delta) => {
+        let currentVal = parseFloat(input.value) || 0;
+        let newVal = currentVal + delta;
+
+        // Handle floating point precision
+        if (String(step).includes('.')) {
+            const decimals = String(step).split('.')[1].length;
+            newVal = parseFloat(newVal.toFixed(decimals));
+        }
+
+        if (newVal >= min && newVal <= max) {
+            input.value = newVal;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    };
+
+    btnUp.addEventListener('click', (e) => {
+        e.preventDefault();
+        updateValue(step);
+    });
+
+    btnDown.addEventListener('click', (e) => {
+        e.preventDefault();
+        updateValue(-step);
+    });
+
+    input.dataset.enhanced = 'true';
+}
+
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+
+    // Enhance existing number inputs
+    document.querySelectorAll('input[type="number"]').forEach(enhanceToNumberInput);
+});

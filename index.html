@@ -45,14 +45,7 @@
                                 <option value="USD">USD (美金)</option>
                             </select>
                         </div>
-                        <div class="settings-group">
-                            <label data-i18n="pdfFont">PDF 字體</label>
-                            <select id="fontSelect">
-                                <option value="YuPearl-Medium">粉圓體 Medium</option>
-                                <option value="Iansui-Regular">芫荽體</option>
-                                <option value="ChenYuluoyan-Thin">晨鈺落雁體</option>
-                            </select>
-                        </div>
+                        <!-- PDF Font Selection Removed -->
                     </div>
                 </div>
             </div>
@@ -83,11 +76,11 @@
                     </div>
                 </div>
 
-                <!-- Loan Amount -->
+                <!-- Product Amount (Previously Loan Amount) -->
                 <div class="form-group">
-                    <label data-i18n="loanAmount">貸款金額</label>
+                    <label data-i18n="productAmount" for="productAmount">商品金額</label>
                     <div class="input-with-unit">
-                        <input type="text" id="loanAmount" inputmode="numeric" pattern="[0-9,]*" value="10,000,000">
+                        <input type="text" id="productAmount" inputmode="numeric" pattern="[0-9,]*" value="10,000,000">
                         <span class="unit" id="currencyUnit">TWD</span>
                     </div>
                 </div>
@@ -119,6 +112,16 @@
                             <input type="number" id="interestRate" min="0" max="30" step="0.01" value="2.5">
                             <span class="unit-inline">%</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Derived Loan Amount -->
+                <div class="form-group">
+                    <label data-i18n="loanAmount">貸款金額</label>
+                    <div class="input-with-unit">
+                        <input type="text" id="loanAmount" readonly value="8,000,000"
+                            style="background-color: var(--bg-secondary); color: var(--text-muted); cursor: not-allowed;">
+                        <span class="unit">TWD</span>
                     </div>
                 </div>
 
@@ -234,7 +237,7 @@
 
                 <!-- Charts -->
                 <div class="charts-container">
-                    <div class="chart-wrapper">
+                    <div class="chart-wrapper" id="paymentChartWrapper">
                         <div class="chart-header">
                             <h3 data-i18n="paymentChart">還款金額趨勢圖</h3>
                             <div class="chart-actions">
@@ -250,7 +253,7 @@
                             <canvas id="paymentChart"></canvas>
                         </div>
                     </div>
-                    <div class="chart-wrapper">
+                    <div class="chart-wrapper" id="balanceChartWrapper">
                         <div class="chart-header">
                             <h3 data-i18n="balanceChart">本金利息累計圖</h3>
                             <div class="chart-actions">

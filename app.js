@@ -17,7 +17,7 @@ let currentThemeIndex = 0;
 const defaultLoanTerms = {
     mortgage: 30,
     car: 5,
-    personal: 5,
+    personal: 7,
     other: 10
 };
 
@@ -27,6 +27,22 @@ const defaultLoanRatios = {
     car: 100,
     personal: 100,
     other: 80
+};
+
+// Default loan amounts by type
+const defaultLoanAmounts = {
+    mortgage: 10000000,
+    car: 2000000,
+    personal: 2000000,
+    other: 5000000
+};
+
+// Default interest rates by type (in %)
+const defaultInterestRates = {
+    mortgage: 2.5,
+    car: 3.0,
+    personal: 2.5,
+    other: 3.0
 };
 
 // DOM Elements
@@ -40,49 +56,55 @@ const elements = {
     // Inputs
     loanTypeSelect: document.getElementById('loanTypeSelect'),
     customLoanType: document.getElementById('customLoanType'),
-    loanAmount: document.getElementById('loanAmount'),
+    // Note: productAmount and loanAmount are handled specially now
+    productAmount: document.getElementById('productAmount'),
+    loanAmount: document.getElementById('loanAmount'), // Derived
     loanRatio: document.getElementById('loanRatio'),
-    // Charts
-    paymentChart: document.getElementById('paymentChart'),
-    balanceChart: document.getElementById('balanceChart'),
-
-    // Result details
-    monthlyPaymentFirst: document.getElementById('monthlyPaymentFirst'),
-    monthlyPaymentLast: document.getElementById('monthlyPaymentLast'),
-    totalInterest: document.getElementById('totalInterest'),
-    totalCost: document.getElementById('totalCost'),
-    totalEffect: document.getElementById('totalEffect'), // Only in DE?
-    principalAmount: document.getElementById('principalAmount'),
     loanTerm: document.getElementById('loanTerm'),
-    gracePeriod: document.getElementById('gracePeriod'),
-    gracePeriodToggle: document.getElementById('gracePeriodToggle'),
-    gracePeriodInputs: document.getElementById('gracePeriodInputs'),
-    gracePeriodUnit: document.getElementById('gracePeriodUnit'),
     interestRate: document.getElementById('interestRate'),
     paymentMethod: document.getElementById('paymentMethod'),
     currencyUnit: document.getElementById('currencyUnit'),
+    gracePeriod: document.getElementById('gracePeriod'),
+    gracePeriodUnit: document.getElementById('gracePeriodUnit'),
+    gracePeriodToggle: document.getElementById('gracePeriodToggle'),
+    gracePeriodInputs: document.getElementById('gracePeriodInputs'),
 
-    // Costs
-    addCostBtn: document.getElementById('addCostBtn'),
-    costsContainer: document.getElementById('costsContainer'),
-    totalCostsValue: document.getElementById('totalCostsValue'),
+    // Charts
+    paymentChart: document.getElementById('paymentChart'),
+    balanceChart: document.getElementById('balanceChart'),
+    magnifyPaymentChart: document.getElementById('magnifyPaymentChart'),
+    magnifyBalanceChart: document.getElementById('magnifyBalanceChart'),
+    expandPaymentChart: document.getElementById('expandPaymentChart'),
+    expandBalanceChart: document.getElementById('expandBalanceChart'),
 
-    // Reset button
-    resetBtn: document.getElementById('resetBtn'),
-
-    // Calculate
-    calculateBtn: document.getElementById('calculateBtn'),
-
-    // Results
+    // Result details
     resultsSection: document.getElementById('resultsSection'),
-    monthlyPaymentValue: document.getElementById('monthlyPaymentValue'),
-    totalPaymentValue: document.getElementById('totalPaymentValue'),
-    totalInterestValue: document.getElementById('totalInterestValue'),
-    totalCostValue: document.getElementById('totalCostValue'),
-    aprValue: document.getElementById('aprValue'),
+    monthlyPaymentFirst: document.getElementById('monthlyPaymentFirst'),
+    monthlyPaymentLast: document.getElementById('monthlyPaymentLast'),
+    gracePayment: document.getElementById('gracePaymentValue'),
+    totalPayment: document.getElementById('totalPaymentValue'),
+    totalInterest: document.getElementById('totalInterestValue'),
+    totalCost: document.getElementById('totalCostValue'),
+    apr: document.getElementById('aprValue'),
+    totalDownPayment: document.getElementById('totalDownPaymentValue'),
+    totalEffect: document.getElementById('totalEffect'), // Only in DE?
+    principalAmount: document.getElementById('principalAmount'),
     amortizationBody: document.getElementById('amortizationBody'),
 
-    // Export/Share dropdown
+    // Breakdown Modal
+    fullscreenModal: document.getElementById('fullscreenModal'), // Reused or new?
+    fullscreenTitle: document.getElementById('fullscreenTitle'),
+    fullscreenClose: document.getElementById('fullscreenClose'),
+    fullscreenBody: document.getElementById('fullscreenBody'),
+
+    // Costs
+    costsContainer: document.getElementById('costsContainer'),
+    addCostBtn: document.getElementById('addCostBtn'),
+    totalCosts: document.getElementById('totalCostsValue'),
+
+    // Export & Share
+    settingsToggle: document.getElementById('settingsToggle'),
+    settingsMenu: document.getElementById('settingsMenu'),
     shareDropdownBtn: document.getElementById('shareDropdownBtn'),
     shareDropdownMenu: document.getElementById('shareDropdownMenu'),
     exportCSV: document.getElementById('exportCSV'),
@@ -90,44 +112,130 @@ const elements = {
     exportPDF: document.getElementById('exportPDF'),
     shareBtn: document.getElementById('shareBtn'),
 
-    // Chart magnify
-    magnifyPaymentChart: document.getElementById('magnifyPaymentChart'),
-    magnifyBalanceChart: document.getElementById('magnifyBalanceChart'),
+    // Other UI elements
+    resetBtn: document.getElementById('resetBtn'),
+    calculateBtn: document.getElementById('calculateBtn'),
 
-    // Modal
-    chartModal: document.getElementById('chartModal'),
-    modalTitle: document.getElementById('modalTitle'),
-    modalClose: document.getElementById('modalClose'),
     periodSlider: document.getElementById('periodSlider'),
     periodDisplay: document.getElementById('periodDisplay'),
     periodDetails: document.getElementById('periodDetails'),
 
-    // Settings dropdown
-    settingsToggle: document.getElementById('settingsToggle'),
-    settingsMenu: document.getElementById('settingsMenu'),
+    chartModal: document.getElementById('chartModal'),
+    modalTitle: document.getElementById('modalTitle'),
+    modalClose: document.getElementById('modalClose'),
 
-    // Grace payment toggle
-    graceToggleContainer: document.getElementById('graceToggleContainer'),
-    gracePaymentToggle: document.getElementById('gracePaymentToggle'),
-    gracePaymentValue: document.getElementById('gracePaymentValue'),
-
-    // Expand buttons
-    expandPaymentChart: document.getElementById('expandPaymentChart'),
-    expandBalanceChart: document.getElementById('expandBalanceChart'),
+    fontSelect: document.getElementById('fontSelect'),
     expandTable: document.getElementById('expandTable'),
 
-    // Fullscreen modal
-    fullscreenModal: document.getElementById('fullscreenModal'),
-    fullscreenTitle: document.getElementById('fullscreenTitle'),
-    fullscreenClose: document.getElementById('fullscreenClose'),
-    fullscreenBody: document.getElementById('fullscreenBody'),
-
-    // Font selector
-    fontSelect: document.getElementById('fontSelect'),
-
-    // Reset button
-    resetBtn: document.getElementById('resetBtn')
+    graceToggleContainer: document.getElementById('graceToggleContainer'),
+    gracePaymentToggle: document.getElementById('gracePaymentToggle'),
+    gracePaymentValue: document.getElementById('gracePaymentValue')
 };
+
+// Auto-calculate Loan Amount based on Product Amount and Ratio
+function updateLoanAmount() {
+    if (!elements.productAmount || !elements.loanRatio || !elements.loanAmount) return;
+
+    const productAmount = parseFloat(elements.productAmount.value.replace(/,/g, '')) || 0;
+    const ratio = parseFloat(elements.loanRatio.value) || 0;
+    const loanAmount = Math.round(productAmount * (ratio / 100));
+
+    // Update derived field
+    elements.loanAmount.value = i18n.formatNumber(loanAmount);
+}
+
+// Add listeners for auto-calculation
+if (elements.productAmount) {
+    // Handle backspace/delete near commas by skipping over them
+    elements.productAmount.addEventListener('keydown', (e) => {
+        const input = e.target;
+        const cursorPos = input.selectionStart;
+        const value = input.value;
+
+        if (e.key === 'Backspace' && cursorPos > 0) {
+            // If the character before cursor is a comma, skip it
+            if (value[cursorPos - 1] === ',') {
+                e.preventDefault();
+                // Find the digit before the comma and delete it
+                let newPos = cursorPos - 1;
+                while (newPos > 0 && value[newPos - 1] === ',') {
+                    newPos--;
+                }
+                if (newPos > 0) {
+                    const newValue = value.substring(0, newPos - 1) + value.substring(cursorPos);
+                    input.value = newValue;
+                    // Reformat and update cursor
+                    formatNumberInput(input);
+                    updateLoanAmount();
+                }
+            }
+        } else if (e.key === 'Delete' && cursorPos < value.length) {
+            // If the character at cursor is a comma, skip it
+            if (value[cursorPos] === ',') {
+                e.preventDefault();
+                // Find the digit after the comma and delete it
+                let newPos = cursorPos + 1;
+                while (newPos < value.length && value[newPos] === ',') {
+                    newPos++;
+                }
+                if (newPos < value.length) {
+                    const newValue = value.substring(0, cursorPos) + value.substring(newPos + 1);
+                    input.value = newValue;
+                    // Reformat and update cursor
+                    formatNumberInput(input);
+                    updateLoanAmount();
+                }
+            }
+        }
+    });
+
+    elements.productAmount.addEventListener('input', () => {
+        // Use the improved formatNumberInput function
+        formatNumberInput(elements.productAmount);
+        updateLoanAmount(); // Update calculated amount
+    });
+}
+if (elements.loanRatio) {
+    elements.loanRatio.addEventListener('input', updateLoanAmount);
+}
+
+// Initial calculation
+setTimeout(updateLoanAmount, 100);
+
+// Show Down Payment Breakdown
+function showDownPaymentBreakdown(data) {
+    const listHtml = `
+        <div class="cost-list-item">
+            <span class="cost-name" data-i18n="baseDownPayment">基本頭期款</span>
+            <span class="cost-amount">${i18n.formatCurrency(data.baseDownPayment)}</span>
+        </div>
+        ${data.unrelatedCostsList.map(item => `
+        <div class="cost-list-item">
+            <span class="cost-name">${item.name}</span>
+            <span class="cost-amount">${i18n.formatCurrency(item.amount)}</span>
+        </div>
+        `).join('')}
+        <div class="cost-list-item total">
+            <span class="cost-name" data-i18n="total">總計</span>
+            <span class="cost-amount">${i18n.formatCurrency(data.totalDownPayment)}</span>
+        </div>
+    `;
+
+    showConfirmModal(
+        i18n.t('totalDownPayment') || '總自備金額明細',
+        listHtml,
+        () => { } // No confirm action needed
+    );
+    // Hide cancel button for this view-only modal
+    const modal = document.querySelector('.cost-modal-overlay:last-child'); // Get the modal we just created
+    if (modal) {
+        const cancelBtn = modal.querySelector('.btn-cancel');
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        const confirmBtn = modal.querySelector('.btn-confirm');
+        if (confirmBtn) confirmBtn.textContent = i18n.t('close') || '關閉';
+    }
+}
+
 
 // Initialize application
 function init() {
@@ -262,6 +370,9 @@ function setupEventListeners() {
         }
 
         updateMonthlyPaymentLabel();
+
+        // Update total costs display to reflect new language
+        updateTotalCosts();
     });
 
     // Theme toggle - 點擊切換到下一個主題
@@ -292,7 +403,7 @@ function setupEventListeners() {
         }
     });
 
-    // Loan type change - update default term, ratio and handle custom type
+    // Loan type change - update default term, ratio, amount, rate and handle custom type
     elements.loanTypeSelect.addEventListener('change', (e) => {
         const loanType = e.target.value;
 
@@ -304,6 +415,11 @@ function setupEventListeners() {
             elements.customLoanType.classList.add('hidden');
         }
 
+        // Update default product amount based on loan type
+        if (defaultLoanAmounts[loanType] && elements.productAmount) {
+            elements.productAmount.value = i18n.formatNumber(defaultLoanAmounts[loanType]);
+        }
+
         // Update default loan term based on loan type
         if (defaultLoanTerms[loanType]) {
             elements.loanTerm.value = defaultLoanTerms[loanType];
@@ -313,6 +429,26 @@ function setupEventListeners() {
         if (defaultLoanRatios[loanType]) {
             elements.loanRatio.value = defaultLoanRatios[loanType];
         }
+
+        // Update default interest rate based on loan type
+        if (defaultInterestRates[loanType] && elements.interestRate) {
+            elements.interestRate.value = defaultInterestRates[loanType];
+        }
+
+        // Update productAmount label based on loan type
+        const productAmountLabel = document.querySelector('label[data-i18n="productAmount"], label[data-i18n="productAmountPersonal"]');
+        if (productAmountLabel) {
+            if (loanType === 'personal') {
+                productAmountLabel.setAttribute('data-i18n', 'productAmountPersonal');
+                productAmountLabel.textContent = i18n.t('productAmountPersonal');
+            } else {
+                productAmountLabel.setAttribute('data-i18n', 'productAmount');
+                productAmountLabel.textContent = i18n.t('productAmount');
+            }
+        }
+
+        // Recalculate loan amount after updating all fields
+        updateLoanAmount();
     });
 
     // Grace period toggle
@@ -448,9 +584,18 @@ function setupEventListeners() {
     elements.exportPDF.addEventListener('click', exportToPDF);
     elements.shareBtn.addEventListener('click', shareResults);
 
-    // Enter key to calculate
+    // Enter key to calculate (only when no modal is open)
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+        // Skip if a modal is open (cost modal or confirm modal)
+        const hasOpenModal = document.querySelector('.cost-modal-overlay') ||
+            document.querySelector('.modal-overlay.active');
+        if (hasOpenModal) return;
+
+        // Skip for buttons and selects
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+
+        if (e.key === 'Enter') {
+            e.preventDefault();
             calculate();
         }
     });
@@ -580,10 +725,10 @@ function addCostItem() {
                     <label>${i18n.t('costType')}</label>
                     <div class="toggle-group" style="display: flex; gap: 8px;">
                          <div class="type-option selected" data-value="related" style="flex: 1; padding: 8px; border: 1px solid var(--border-color); text-align: center; border-radius: var(--border-radius); cursor: pointer; background: var(--bg-secondary); transition: all 0.2s;">
-                             <span style="font-size: 0.8rem;">${i18n.t('costRelated')}</span>
+                             <span style="font-size: 0.8rem; white-space: pre-line;">${i18n.t('costRelated')}</span>
                          </div>
                          <div class="type-option" data-value="unrelated" style="flex: 1; padding: 8px; border: 1px solid var(--border-color); text-align: center; border-radius: var(--border-radius); cursor: pointer; background: var(--bg-secondary); transition: all 0.2s;">
-                             <span style="font-size: 0.8rem;">${i18n.t('costUnrelated')}</span>
+                             <span style="font-size: 0.8rem; white-space: pre-line;">${i18n.t('costUnrelated')}</span>
                          </div>
                     </div>
                 </div>
@@ -761,7 +906,7 @@ function addCostItem() {
             : '';
 
         costItem.innerHTML = `
-            <div style="flex: 1; display: flex; align-items: center; gap: 8px;">
+            <div class="cost-info">
                 <span class="cost-name">${name}</span>
                 ${badgeHtml}
             </div>
@@ -809,7 +954,7 @@ function showConfirmModal(title, message, onConfirm) {
     modal.style.zIndex = '10002'; // Ensure it's on top
 
     modal.innerHTML = `
-        <div class="cost-modal" style="max-width: 400px;">
+        <div class="cost-modal" style="width: 90%; max-width: 400px; max-height: 90vh; overflow-y: auto;">
             <h3>${title}</h3>
             <div class="cost-modal-body">
                 <p style="margin: 0; color: var(--text-primary); font-size: 1.05rem;">${message}</p>
@@ -948,7 +1093,7 @@ function updateTotalCosts() {
         text += ` + ${i18n.formatCurrency(financedTotal)} (${i18n.t('costFinanced')})`;
     }
 
-    elements.totalCostsValue.textContent = text;
+    elements.totalCosts.textContent = text;
 }
 
 // Get additional costs from inputs
@@ -1037,10 +1182,23 @@ function parseFormattedNumber(value) {
 function formatNumberInput(input) {
     const cursorPos = input.selectionStart;
     const oldValue = input.value;
-    const oldLength = oldValue.length;
+
+    // Count how many digits are before the cursor position
+    let digitsBeforeCursor = 0;
+    for (let i = 0; i < cursorPos && i < oldValue.length; i++) {
+        if (/\d/.test(oldValue[i])) {
+            digitsBeforeCursor++;
+        }
+    }
 
     // Remove non-digit characters except dot
     let cleaned = oldValue.replace(/[^\d.]/g, '');
+
+    // Handle multiple dots - keep only the first one
+    const dotIndex = cleaned.indexOf('.');
+    if (dotIndex !== -1) {
+        cleaned = cleaned.substring(0, dotIndex + 1) + cleaned.substring(dotIndex + 1).replace(/\./g, '');
+    }
 
     // Split by dot for decimal handling
     const parts = cleaned.split('.');
@@ -1051,14 +1209,24 @@ function formatNumberInput(input) {
     const formatted = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
     // Combine with decimal if exists
-    const newValue = decimalPart ? `${formatted}.${decimalPart}` : formatted;
+    const newValue = decimalPart !== '' || oldValue.includes('.') ? `${formatted}.${decimalPart}` : formatted;
 
     input.value = newValue;
 
-    // Adjust cursor position
-    const newLength = newValue.length;
-    const diff = newLength - oldLength;
-    const newCursorPos = cursorPos + diff;
+    // Find the new cursor position by counting digits
+    let newCursorPos = 0;
+    let digitCount = 0;
+    for (let i = 0; i < newValue.length && digitCount < digitsBeforeCursor; i++) {
+        if (/\d/.test(newValue[i])) {
+            digitCount++;
+        }
+        newCursorPos = i + 1;
+    }
+
+    // Handle case when cursor was after all digits
+    if (digitCount < digitsBeforeCursor) {
+        newCursorPos = newValue.length;
+    }
 
     input.setSelectionRange(newCursorPos, newCursorPos);
 }
@@ -1068,6 +1236,7 @@ function calculate() {
     if (!validateInputs()) return;
 
     const amount = parseFormattedNumber(elements.loanAmount.value);
+    const productAmount = parseFormattedNumber(elements.productAmount.value);
     const ratio = parseFloat(elements.loanRatio.value) || 100;
     const rate = parseFloat(elements.interestRate.value);
     const term = parseFloat(elements.loanTerm.value);
@@ -1076,7 +1245,7 @@ function calculate() {
     const costs = getAdditionalCosts();
 
     // Set calculator parameters
-    calculator.setParams(amount, ratio, rate, term, gracePeriod, method);
+    calculator.setParams(amount, ratio, rate, term, gracePeriod, method, productAmount);
     calculator.setAdditionalCosts(costs);
 
     // Calculate
@@ -1133,18 +1302,18 @@ function displayResults(results) {
     }
 
     // Total payment
-    if (elements.totalPaymentValue) {
-        elements.totalPaymentValue.textContent = i18n.formatCurrency(results.totalPayment);
+    if (elements.totalPayment) {
+        elements.totalPayment.textContent = i18n.formatCurrency(results.totalPayment);
     }
 
     // Total interest
-    if (elements.totalInterestValue) {
-        elements.totalInterestValue.textContent = i18n.formatCurrency(results.totalInterest);
+    if (elements.totalInterest) {
+        elements.totalInterest.textContent = i18n.formatCurrency(results.totalInterest);
     }
 
     // APR
-    if (elements.aprValue) {
-        elements.aprValue.textContent = i18n.formatPercent(results.apr);
+    if (elements.apr) {
+        elements.apr.textContent = i18n.formatPercent(results.apr);
     }
 
     // Total Down Payment
@@ -1168,12 +1337,27 @@ function updateGracePaymentDisplay() {
 }
 
 // Update charts
+// Update charts
 function updateCharts(results) {
-    const chartData = calculator.getChartData();
+    // Increase resolution for scrollable chart (e.g. 180 points)
+    const chartData = calculator.getChartData(180);
     const colors = getThemeColors();
+    const pointCount = chartData.labels.length;
+    const minWidthPerPoint = 20; // 20px per data point
+    const minChartHeight = 800; // Tall chart to enable vertical scroll
 
-    // Payment trend chart
-    const paymentCtx = document.getElementById('paymentChart').getContext('2d');
+    // --- Payment Trend Chart ---
+    const paymentCanvas = document.getElementById('paymentChart');
+    const paymentContainer = paymentCanvas.parentElement;
+    const containerWidth = paymentContainer.clientWidth || 800;
+
+    // Dynamic width calculation
+    const requiredWidth = Math.max(containerWidth, pointCount * minWidthPerPoint);
+
+    paymentCanvas.style.width = `${requiredWidth}px`;
+    paymentCanvas.style.height = `${minChartHeight}px`;
+
+    const paymentCtx = paymentCanvas.getContext('2d');
 
     if (paymentChart) {
         paymentChart.destroy();
@@ -1189,18 +1373,21 @@ function updateCharts(results) {
                 borderColor: colors.accent,
                 backgroundColor: colors.accent + '20',
                 fill: true,
-                fill: true,
-                stepped: true,  // 階梯狀：寬限期與還款期之間垂直90度變化，期間內水平
-                pointStyle: 'rectRot', // Diamond shape
-                pointRadius: 3.5, // Reduced 30% from 5
-                pointHoverRadius: 6, // Slightly enlarged
+                stepped: true,
+                pointStyle: 'rectRot',
+                pointRadius: 3,
+                pointHoverRadius: 6,
                 pointBackgroundColor: colors.bg,
                 pointBorderWidth: 2
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false, // Allow width to exceed container
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
             plugins: {
                 legend: {
                     labels: { color: colors.text }
@@ -1239,8 +1426,12 @@ function updateCharts(results) {
         }
     });
 
-    // Balance chart (cumulative principal & interest)
-    const balanceCtx = document.getElementById('balanceChart').getContext('2d');
+    // --- Balance Chart ---
+    const balanceCanvas = document.getElementById('balanceChart');
+    balanceCanvas.style.width = `${requiredWidth}px`;
+    balanceCanvas.style.height = `${minChartHeight}px`;
+
+    const balanceCtx = balanceCanvas.getContext('2d');
 
     if (balanceChart) {
         balanceChart.destroy();
@@ -1255,15 +1446,12 @@ function updateCharts(results) {
                     label: i18n.t('principalPaid'),
                     data: chartData.cumulativePrincipal,
                     borderColor: colors.success,
-                    label: i18n.t('principalPaid'),
-                    data: chartData.cumulativePrincipal,
-                    borderColor: colors.success,
                     backgroundColor: colors.success + '20',
                     fill: true,
-                    tension: 0.4,  // 平滑曲線，顯示累計成長
-                    pointStyle: 'rectRot', // Diamond shape
-                    pointRadius: 3.5, // Reduced 30% from 5
-                    pointHoverRadius: 6, // Slightly enlarged
+                    tension: 0.4,
+                    pointStyle: 'rectRot',
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
                     pointBackgroundColor: colors.bg,
                     pointBorderWidth: 2
                 },
@@ -1273,10 +1461,10 @@ function updateCharts(results) {
                     borderColor: colors.warning,
                     backgroundColor: colors.warning + '20',
                     fill: true,
-                    tension: 0.4,  // 平滑曲線，顯示累計成長
-                    pointStyle: 'rectRot', // Diamond shape
-                    pointRadius: 3.5, // Reduced 30% from 5
-                    pointHoverRadius: 6, // Slightly enlarged
+                    tension: 0.4,
+                    pointStyle: 'rectRot',
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
                     pointBackgroundColor: colors.bg,
                     pointBorderWidth: 2
                 }
@@ -1284,7 +1472,11 @@ function updateCharts(results) {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false, // Allow width to exceed container
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
             plugins: {
                 legend: {
                     labels: { color: colors.text }
@@ -1374,8 +1566,8 @@ function exportToExcel() {
 async function exportToPDF() {
     if (!currentResults || !currentSummary) return;
 
-    // Get selected font
-    const selectedFont = elements.fontSelect ? elements.fontSelect.value : 'YuPearl-Medium';
+    // Get selected font (Fixed to NotoSansTC)
+    const selectedFont = 'NotoSansTC-Regular';
     const filename = `loan_schedule_${new Date().toISOString().slice(0, 10)}.pdf`;
 
     try {
@@ -1723,4 +1915,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Enhance existing number inputs
     document.querySelectorAll('input[type="number"]').forEach(enhanceToNumberInput);
+
+    // Setup chart scrolling
+    setupChartScrolling();
 });
+
+// Setup scroll interactions for charts
+function setupChartScrolling() {
+    const containers = document.querySelectorAll('.chart-scroll-container');
+
+    containers.forEach(container => {
+        // Drag to scroll functionality
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        container.addEventListener('mousedown', (e) => {
+            isDown = true;
+            container.style.cursor = 'grabbing';
+            startX = e.pageX - container.offsetLeft;
+            scrollLeft = container.scrollLeft;
+        });
+
+        container.addEventListener('mouseleave', () => {
+            isDown = false;
+            container.style.cursor = 'grab';
+        });
+
+        container.addEventListener('mouseup', () => {
+            isDown = false;
+            container.style.cursor = 'grab';
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - container.offsetLeft;
+            const walk = (x - startX) * 1.5; // Scroll speed multiplier
+            container.scrollLeft = scrollLeft - walk;
+        });
+    });
+}
