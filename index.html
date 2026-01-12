@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>個人貸款模擬試算 | Loan Calculator | ローンシミュレーション</title>
+    <title>個人貸款模擬試算 | Loan </title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -23,6 +23,22 @@
                 <button type="button" class="theme-toggle" id="themeToggle" title="切換主題">
                     <span class="theme-icon" id="themeIcon">🌤️</span>
                 </button>
+                <!-- History Button -->
+                <div class="history-dropdown">
+                    <button type="button" class="history-toggle" id="historyToggle" title="歷史紀錄">
+                        <span>📜</span>
+                    </button>
+                    <div class="history-dropdown-menu" id="historyMenu">
+                        <div class="history-header">
+                            <span data-i18n="history">歷史紀錄</span>
+                            <button type="button" class="btn-clear-history" id="clearHistoryBtn"
+                                title="清除全部">🗑️</button>
+                        </div>
+                        <div class="history-list" id="historyList">
+                            <p class="history-empty" data-i18n="noHistory">尚無紀錄</p>
+                        </div>
+                    </div>
+                </div>
                 <!-- Settings Button -->
                 <div class="settings-dropdown">
                     <button type="button" class="settings-toggle" id="settingsToggle" title="設定">
@@ -176,24 +192,31 @@
             <section class="results-section" id="resultsSection">
                 <div class="results-header">
                     <h2 data-i18n="results">計算結果</h2>
-                    <div class="share-dropdown">
-                        <button type="button" class="btn-share-main" id="shareDropdownBtn" title="匯出/分享">
-                            <span>📤</span>
+                    <div class="results-actions">
+                        <!-- Copy Button -->
+                        <button type="button" class="btn-copy" id="copyResultsBtn" title="複製結果">
+                            <span class="copy-icon">📋</span>
+                            <span class="copy-success">✓</span>
                         </button>
-                        <div class="share-dropdown-menu" id="shareDropdownMenu">
-                            <button type="button" id="exportCSV" class="dropdown-item">
-                                <span>📄</span> CSV
+                        <div class="share-dropdown">
+                            <button type="button" class="btn-share-main" id="shareDropdownBtn" title="匯出/分享">
+                                <span>📤</span>
                             </button>
-                            <button type="button" id="exportExcel" class="dropdown-item">
-                                <span>📊</span> Excel
-                            </button>
-                            <button type="button" id="exportPDF" class="dropdown-item">
-                                <span>📑</span> PDF
-                            </button>
-                            <hr class="dropdown-divider">
-                            <button type="button" id="shareBtn" class="dropdown-item">
-                                <span>🔗</span> <span data-i18n="share">分享</span>
-                            </button>
+                            <div class="share-dropdown-menu" id="shareDropdownMenu">
+                                <button type="button" id="exportCSV" class="dropdown-item">
+                                    <span>📄</span> CSV
+                                </button>
+                                <button type="button" id="exportExcel" class="dropdown-item">
+                                    <span>📊</span> Excel
+                                </button>
+                                <button type="button" id="exportPDF" class="dropdown-item">
+                                    <span>📑</span> PDF
+                                </button>
+                                <hr class="dropdown-divider">
+                                <button type="button" id="shareBtn" class="dropdown-item">
+                                    <span>🔗</span> <span data-i18n="share">分享</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

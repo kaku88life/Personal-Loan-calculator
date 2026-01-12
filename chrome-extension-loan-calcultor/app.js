@@ -112,6 +112,7 @@ const elements = {
     exportExcel: document.getElementById('exportExcel'),
     exportPDF: document.getElementById('exportPDF'),
     shareBtn: document.getElementById('shareBtn'),
+    copyResultsBtn: document.getElementById('copyResultsBtn'),
 
     // Other UI elements
     resetBtn: document.getElementById('resetBtn'),
@@ -130,7 +131,13 @@ const elements = {
 
     graceToggleContainer: document.getElementById('graceToggleContainer'),
     gracePaymentToggle: document.getElementById('gracePaymentToggle'),
-    gracePaymentValue: document.getElementById('gracePaymentValue')
+    gracePaymentValue: document.getElementById('gracePaymentValue'),
+
+    // History
+    historyToggle: document.getElementById('historyToggle'),
+    historyMenu: document.getElementById('historyMenu'),
+    historyList: document.getElementById('historyList'),
+    clearHistoryBtn: document.getElementById('clearHistoryBtn')
 };
 
 // Auto-calculate Loan Amount based on Product Amount and Ratio
@@ -623,6 +630,35 @@ function setupEventListeners() {
     elements.exportPDF.addEventListener('click', exportToPDF);
     elements.shareBtn.addEventListener('click', shareResults);
 
+    // Copy button
+    if (elements.copyResultsBtn) {
+        elements.copyResultsBtn.addEventListener('click', copyResults);
+    }
+
+    // History dropdown toggle
+    if (elements.historyToggle) {
+        elements.historyToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = elements.historyToggle.parentElement;
+            dropdown.classList.toggle('active');
+            displayHistory();
+        });
+
+        document.addEventListener('click', (e) => {
+            const dropdown = elements.historyToggle.parentElement;
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+    }
+
+    if (elements.clearHistoryBtn) {
+        elements.clearHistoryBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearHistory();
+        });
+    }
+
     // Enter key to calculate (only when no modal is open)
     document.addEventListener('keydown', (e) => {
         // Skip if a modal is open (cost modal or confirm modal)
@@ -751,8 +787,10 @@ function addCostItem() {
                     <input type="text" id="costAmountInput" class="cost-modal-input" placeholder="0" inputmode="numeric">
                 </div>
 
+                <div class="cost-section-divider"></div>
+
                 <div class="cost-payment-mode">
-                    <label>${i18n.t('costPaymentMode')}</label>
+                    <div class="cost-section-title">${i18n.t('costPaymentMode')}</div>
                     <div class="mode-options">
                         <div class="mode-option selected" data-value="upfront">
                             ${i18n.t('costOneTime')}
@@ -763,9 +801,11 @@ function addCostItem() {
                     </div>
                 </div>
 
+                <div class="cost-section-divider"></div>
+
                 <!-- Cost Type Selection (Related vs Unrelated) -->
-                 <div class="form-group" style="margin-top: 12px;">
-                    <label>${i18n.t('costType')}</label>
+                 <div class="form-group">
+                    <div class="cost-section-title">${i18n.t('costType')}</div>
                     <div class="toggle-group" style="display: flex; gap: 8px;">
                          ${relatedBtnHtml}
                          ${unrelatedBtnHtml}
@@ -773,6 +813,7 @@ function addCostItem() {
                 </div>
 
                 <div class="cost-finance-details" id="costFinanceDetails">
+                    <div class="cost-section-title" style="margin-top:0">${i18n.t('costFinancedDetails') || '分期設定'}</div>
                     <div class="form-group">
                          <label>${i18n.t('costFinancedRate')}</label>
                          <input type="number" id="costRateInput" class="cost-modal-input" value="${mainRate}" step="0.01">
@@ -1306,6 +1347,9 @@ function calculate() {
     // Show results section with animation
     elements.resultsSection.style.display = 'block';
     elements.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Save to history
+    saveToHistory();
 }
 
 // Display calculation results
@@ -1583,6 +1627,59 @@ async function exportToPDF() {
     } catch (error) {
         console.error('PDF export failed:', error);
         alert('PDF 匯出失敗，請稍後再試');
+    }
+}
+
+// Copy results to clipboard
+async function copyResults() {
+    if (!currentSummary) return;
+
+    const summary = currentSummary;
+    const lines = [
+        `📊 ${i18n.t('title') || '貸款試算結果'}`,
+        '',
+        `${i18n.t('loanAmount')}: ${i18n.formatCurrency(summary.actualAmount)}`,
+        `${i18n.t('interestRate')}: ${summary.annualRate}%`,
+        `${i18n.t('loanTerm')}: ${summary.termYears} ${i18n.t('years')}`,
+    ];
+
+    if (summary.gracePeriodMonths > 0) {
+        lines.push(`${i18n.t('gracePeriod')}: ${summary.gracePeriodMonths} ${i18n.t('months')}`);
+    }
+
+    lines.push('');
+    lines.push(`💰 ${i18n.t('monthlyPayment')}: ${i18n.formatCurrency(summary.monthlyPayment)}`);
+    lines.push(`📈 ${i18n.t('totalPayment')}: ${i18n.formatCurrency(summary.totalPayment)}`);
+    lines.push(`💵 ${i18n.t('totalInterest')}: ${i18n.formatCurrency(summary.totalInterest)}`);
+    lines.push(`📉 ${i18n.t('apr')}: ${summary.apr.toFixed(2)}%`);
+
+    const text = lines.join('\n');
+
+    try {
+        await navigator.clipboard.writeText(text);
+        if (elements.copyResultsBtn) {
+            elements.copyResultsBtn.classList.add('copied');
+            setTimeout(() => {
+                elements.copyResultsBtn.classList.remove('copied');
+            }, 2000);
+        }
+    } catch (err) {
+        console.error('Copy failed:', err);
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        if (elements.copyResultsBtn) {
+            elements.copyResultsBtn.classList.add('copied');
+            setTimeout(() => {
+                elements.copyResultsBtn.classList.remove('copied');
+            }, 2000);
+        }
     }
 }
 
@@ -1967,3 +2064,187 @@ document.addEventListener('DOMContentLoaded', () => {
     // Enhance existing number inputs
     document.querySelectorAll('input[type="number"]').forEach(enhanceToNumberInput);
 });
+
+// ============ HISTORY FUNCTIONS ============
+
+const HISTORY_KEY = 'loanCalc_history';
+const MAX_HISTORY = 5; // Smaller for popup
+
+function saveToHistory() {
+    if (!currentSummary) return;
+
+    const historyItem = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        loanType: elements.loanTypeSelect.value,
+        productAmount: parseFloat(elements.productAmount.value.replace(/,/g, '')) || 0,
+        loanRatio: parseFloat(elements.loanRatio.value) || 0,
+        interestRate: parseFloat(elements.interestRate.value) || 0,
+        termYears: parseInt(elements.loanTerm.value) || 0,
+        monthlyPayment: currentSummary.monthlyPayment,
+        totalInterest: currentSummary.totalInterest,
+        totalPayment: currentSummary.totalPayment,
+        apr: currentSummary.apr
+    };
+
+    let history = loadHistory();
+    history.unshift(historyItem);
+
+    if (history.length > MAX_HISTORY) {
+        history = history.slice(0, MAX_HISTORY);
+    }
+
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    displayHistory();
+}
+
+function loadHistory() {
+    try {
+        const data = localStorage.getItem(HISTORY_KEY);
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function displayHistory() {
+    if (!elements.historyList) return;
+
+    const history = loadHistory();
+
+    if (history.length === 0) {
+        elements.historyList.innerHTML = `<p class="history-empty">${i18n.t('noHistory') || '尚無紀錄'}</p>`;
+        return;
+    }
+
+    const loanTypeNames = {
+        mortgage: i18n.t('mortgage') || '房貸',
+        car: i18n.t('carLoan') || '車貸',
+        personal: i18n.t('personalLoan') || '信貸',
+        other: i18n.t('other') || '其他'
+    };
+
+    elements.historyList.innerHTML = history.map((item, index) => {
+        const date = new Date(item.timestamp);
+        const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+        const typeName = loanTypeNames[item.loanType] || item.loanType;
+
+        return `
+            <div class="history-item" onclick="applyHistoryItem(${index})">
+                <div class="history-item-header">
+                    <span class="history-item-type">${typeName}</span>
+                    <span class="history-item-date">${dateStr}</span>
+                </div>
+                <div class="history-item-details">
+                    <span class="history-item-amount">${i18n.formatCurrency(item.productAmount)}</span>
+                    <span> · ${item.interestRate}% · ${item.termYears}${i18n.t('years') || '年'}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function applyHistoryItem(index) {
+    const history = loadHistory();
+    const item = history[index];
+    if (!item) return;
+
+    if (elements.loanTypeSelect) elements.loanTypeSelect.value = item.loanType;
+    if (elements.productAmount) elements.productAmount.value = i18n.formatNumber(item.productAmount);
+    if (elements.loanRatio) elements.loanRatio.value = item.loanRatio;
+    if (elements.interestRate) elements.interestRate.value = item.interestRate;
+    if (elements.loanTerm) elements.loanTerm.value = item.termYears;
+
+    updateLoanAmount();
+
+    const dropdown = elements.historyToggle.parentElement;
+    dropdown.classList.remove('active');
+
+    calculate();
+}
+
+function clearHistory() {
+    localStorage.removeItem(HISTORY_KEY);
+    displayHistory();
+}
+
+window.applyHistoryItem = applyHistoryItem;
+
+// ============ REAL-TIME VALIDATION ============
+
+const validationRules = {
+    productAmount: {
+        validate: (value) => parseFloat(value.replace(/,/g, '')) > 0,
+        message: () => i18n.t('errorProductAmount') || '請輸入有效金額'
+    },
+    loanRatio: {
+        validate: (value) => {
+            const num = parseFloat(value);
+            return num >= 1 && num <= 100;
+        },
+        message: () => i18n.t('errorLoanRatio') || '成數需介於 1-100%'
+    },
+    interestRate: {
+        validate: (value) => {
+            const num = parseFloat(value);
+            return num >= 0 && num <= 100;
+        },
+        message: () => i18n.t('errorInterestRate') || '利率需介於 0-100%'
+    },
+    loanTerm: {
+        validate: (value) => {
+            const num = parseInt(value);
+            return num > 0;
+        },
+        message: () => i18n.t('errorLoanTerm') || '年限需大於 0'
+    }
+};
+
+function validateField(input) {
+    const fieldId = input.id;
+    const rule = validationRules[fieldId];
+    if (!rule) return true;
+
+    const value = input.value;
+    const isValid = rule.validate(value);
+    const formGroup = input.closest('.form-group');
+
+    const existingTooltip = formGroup ? formGroup.querySelector('.error-tooltip') : null;
+    if (existingTooltip) existingTooltip.remove();
+
+    if (!isValid && value !== '') {
+        input.classList.add('input-error');
+        if (formGroup) {
+            formGroup.classList.add('has-error');
+            const tooltip = document.createElement('span');
+            tooltip.className = 'error-tooltip';
+            tooltip.textContent = rule.message();
+            formGroup.appendChild(tooltip);
+        }
+        return false;
+    } else {
+        input.classList.remove('input-error');
+        if (formGroup) formGroup.classList.remove('has-error');
+        return true;
+    }
+}
+
+function setupRealTimeValidation() {
+    const fieldsToValidate = ['productAmount', 'loanRatio', 'interestRate', 'loanTerm'];
+
+    fieldsToValidate.forEach(fieldId => {
+        const input = document.getElementById(fieldId);
+        if (input) {
+            input.addEventListener('blur', () => validateField(input));
+            input.addEventListener('input', () => {
+                const formGroup = input.closest('.form-group');
+                const existingTooltip = formGroup ? formGroup.querySelector('.error-tooltip') : null;
+                if (existingTooltip) existingTooltip.remove();
+                input.classList.remove('input-error');
+                if (formGroup) formGroup.classList.remove('has-error');
+            });
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', setupRealTimeValidation);

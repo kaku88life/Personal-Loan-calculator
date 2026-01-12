@@ -549,38 +549,67 @@ async function downloadPDF(schedule, summary, i18nInstance, fontName = 'NotoSans
     const doc = new jsPDF();
     let fontLoaded = false;
 
-    // Try to load Noto Sans TC
-    if (fontName === 'NotoSansTC') {
+    // Try to load Custom Font (Yu Pearl)
+    // Check for Custom Font - always try to load for Chinese support
+    if (fontName === 'NotoSansTC' || fontName === 'CustomFont' || fontName === 'YuPearl-Medium' || fontName.includes('YuPearl')) {
         try {
-            // Updated path relative to extension root
-            const fontUrl = chrome.runtime.getURL('fonts/NotoSansTC-Regular.ttf');
+            const fontFileName = 'YUPEARL-MEDIUM.TTF';
+            console.log(`Attempting to load font: ${fontFileName}`);
+
+            let fontUrl;
+            // Detect environment: Chrome Extension vs Web
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+                // Extension environment
+                fontUrl = chrome.runtime.getURL(`fonts/${fontFileName}`);
+            } else {
+                // Web environment (relative path)
+                // Ensure the fonts directory exists at the web root
+                fontUrl = `fonts/${fontFileName}`;
+            }
+
+            console.log('Font URL:', fontUrl);
+
+            // Check if file exists first using HEAD request or just fetch
             const response = await fetch(fontUrl);
 
-            if (response.ok) {
-                const blob = await response.blob();
-                const reader = new FileReader();
-                reader.readAsDataURL(blob);
-                await new Promise(resolve => reader.onloadend = resolve);
-                // Get base64 content
-                const base64data = reader.result.split(',')[1];
-
-                // Register font
-                doc.addFileToVFS('NotoSansTC-Regular.ttf', base64data);
-                doc.addFont('NotoSansTC-Regular.ttf', 'NotoSansTC', 'normal');
-                doc.setFont('NotoSansTC');
-                fontLoaded = true;
-                console.log('Noto Sans TC font loaded successfully');
-            } else {
-                console.warn('Noto Sans TC font file not found at:', fontUrl);
+            if (!response.ok) {
+                throw new Error(`Font file not found at ${fontUrl} (Status: ${response.status})`);
             }
+
+            const blob = await response.blob();
+            const reader = new FileReader();
+
+            await new Promise((resolve, reject) => {
+                reader.onloadend = resolve;
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+
+            if (!reader.result) {
+                throw new Error('Failed to read font file data');
+            }
+
+            const base64data = reader.result.split(',')[1];
+
+            if (base64data) {
+                doc.addFileToVFS(fontFileName, base64data);
+                doc.addFont(fontFileName, 'CustomFont', 'normal');
+                doc.setFont('CustomFont');
+                fontLoaded = true;
+                console.log('Custom font loaded and set successfully');
+            } else {
+                console.warn('Empty base64 data for font');
+            }
+
         } catch (error) {
-            console.error('Error loading font:', error);
+            console.error('Error loading custom font:', error);
+            // Fallback to standard font but warn
+            console.warn('Falling back to standard Helvetica font (Chinese characters may not display)');
         }
     }
 
     if (!fontLoaded) {
-        doc.setFont('helvetica');
-        // Warn user if we know it's missing (optional logic)
+        doc.setFont('helvetica'); // Fallback
     }
 
     // Title

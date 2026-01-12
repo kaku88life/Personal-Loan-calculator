@@ -111,6 +111,7 @@ const elements = {
     exportExcel: document.getElementById('exportExcel'),
     exportPDF: document.getElementById('exportPDF'),
     shareBtn: document.getElementById('shareBtn'),
+    copyResultsBtn: document.getElementById('copyResultsBtn'),
 
     // Other UI elements
     resetBtn: document.getElementById('resetBtn'),
@@ -129,7 +130,13 @@ const elements = {
 
     graceToggleContainer: document.getElementById('graceToggleContainer'),
     gracePaymentToggle: document.getElementById('gracePaymentToggle'),
-    gracePaymentValue: document.getElementById('gracePaymentValue')
+    gracePaymentValue: document.getElementById('gracePaymentValue'),
+
+    // History
+    historyToggle: document.getElementById('historyToggle'),
+    historyMenu: document.getElementById('historyMenu'),
+    historyList: document.getElementById('historyList'),
+    clearHistoryBtn: document.getElementById('clearHistoryBtn')
 };
 
 // Auto-calculate Loan Amount based on Product Amount and Ratio
@@ -583,6 +590,37 @@ function setupEventListeners() {
     elements.exportExcel.addEventListener('click', exportToExcel);
     elements.exportPDF.addEventListener('click', exportToPDF);
     elements.shareBtn.addEventListener('click', shareResults);
+
+    // Copy button
+    if (elements.copyResultsBtn) {
+        elements.copyResultsBtn.addEventListener('click', copyResults);
+    }
+
+    // History dropdown toggle
+    if (elements.historyToggle) {
+        elements.historyToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dropdown = elements.historyToggle.parentElement;
+            dropdown.classList.toggle('active');
+            displayHistory(); // Refresh history display
+        });
+
+        // Close history dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = elements.historyToggle.parentElement;
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+    }
+
+    // Clear history button
+    if (elements.clearHistoryBtn) {
+        elements.clearHistoryBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearHistory();
+        });
+    }
 
     // Enter key to calculate (only when no modal is open)
     document.addEventListener('keydown', (e) => {
@@ -1267,6 +1305,12 @@ function calculate() {
     // Show results section with animation
     elements.resultsSection.style.display = 'block';
     elements.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Save to history (skip if restoring from history)
+    if (!window._skipHistorySave) {
+        saveToHistory();
+    }
+    window._skipHistorySave = false;
 }
 
 // Display calculation results
@@ -1566,8 +1610,8 @@ function exportToExcel() {
 async function exportToPDF() {
     if (!currentResults || !currentSummary) return;
 
-    // Get selected font (Fixed to NotoSansTC)
-    const selectedFont = 'NotoSansTC-Regular';
+    // Get selected font (Yu Pearl for Chinese/Japanese support)
+    const selectedFont = 'YuPearl-Medium';
     const filename = `loan_schedule_${new Date().toISOString().slice(0, 10)}.pdf`;
 
     try {
@@ -1575,6 +1619,61 @@ async function exportToPDF() {
     } catch (error) {
         console.error('PDF export failed:', error);
         alert('PDF 匯出失敗，請稍後再試');
+    }
+}
+
+// Copy results to clipboard
+async function copyResults() {
+    if (!currentSummary) return;
+
+    const summary = currentSummary;
+    const lines = [
+        `📊 ${i18n.t('title') || '貸款試算結果'}`,
+        '',
+        `${i18n.t('loanAmount')}: ${i18n.formatCurrency(summary.actualAmount)}`,
+        `${i18n.t('interestRate')}: ${summary.annualRate}%`,
+        `${i18n.t('loanTerm')}: ${summary.termYears} ${i18n.t('years')}`,
+    ];
+
+    if (summary.gracePeriodMonths > 0) {
+        lines.push(`${i18n.t('gracePeriod')}: ${summary.gracePeriodMonths} ${i18n.t('months')}`);
+    }
+
+    lines.push('');
+    lines.push(`💰 ${i18n.t('monthlyPayment')}: ${i18n.formatCurrency(summary.monthlyPayment)}`);
+    lines.push(`📈 ${i18n.t('totalPayment')}: ${i18n.formatCurrency(summary.totalPayment)}`);
+    lines.push(`💵 ${i18n.t('totalInterest')}: ${i18n.formatCurrency(summary.totalInterest)}`);
+    lines.push(`📉 ${i18n.t('apr')}: ${summary.apr.toFixed(2)}%`);
+
+    const text = lines.join('\n');
+
+    try {
+        await navigator.clipboard.writeText(text);
+        // Show success feedback
+        if (elements.copyResultsBtn) {
+            elements.copyResultsBtn.classList.add('copied');
+            setTimeout(() => {
+                elements.copyResultsBtn.classList.remove('copied');
+            }, 2000);
+        }
+    } catch (err) {
+        console.error('Copy failed:', err);
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        if (elements.copyResultsBtn) {
+            elements.copyResultsBtn.classList.add('copied');
+            setTimeout(() => {
+                elements.copyResultsBtn.classList.remove('copied');
+            }, 2000);
+        }
     }
 }
 
@@ -1956,3 +2055,369 @@ function setupChartScrolling() {
         });
     });
 }
+
+// ============ HISTORY FUNCTIONS ============
+
+const HISTORY_KEY = 'loanCalc_history';
+const MAX_HISTORY = 10;
+
+// Save current calculation to history
+function saveToHistory() {
+    if (!currentSummary) return;
+
+    const historyItem = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        loanType: elements.loanTypeSelect.value,
+        productAmount: parseFloat(elements.productAmount.value.replace(/,/g, '')) || 0,
+        loanRatio: parseFloat(elements.loanRatio.value) || 0,
+        interestRate: parseFloat(elements.interestRate.value) || 0,
+        termYears: parseInt(elements.loanTerm.value) || 0,
+        monthlyPayment: currentSummary.monthlyPayment,
+        totalInterest: currentSummary.totalInterest,
+        totalPayment: currentSummary.totalPayment,
+        apr: currentSummary.apr
+    };
+
+    let history = loadHistory();
+    history.unshift(historyItem);
+
+    // Keep only MAX_HISTORY items
+    if (history.length > MAX_HISTORY) {
+        history = history.slice(0, MAX_HISTORY);
+    }
+
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    displayHistory();
+}
+
+// Load history from localStorage
+function loadHistory() {
+    try {
+        const data = localStorage.getItem(HISTORY_KEY);
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        console.error('Failed to load history:', e);
+        return [];
+    }
+}
+
+// Display history in dropdown
+function displayHistory() {
+    if (!elements.historyList) return;
+
+    const history = loadHistory();
+
+    if (history.length === 0) {
+        elements.historyList.innerHTML = `<p class="history-empty" data-i18n="noHistory">${i18n.t('noHistory') || '尚無紀錄'}</p>`;
+        return;
+    }
+
+    const loanTypeNames = {
+        mortgage: i18n.t('mortgage') || '房貸',
+        car: i18n.t('carLoan') || '車貸',
+        personal: i18n.t('personalLoan') || '信貸',
+        other: i18n.t('other') || '其他'
+    };
+
+    elements.historyList.innerHTML = history.map((item, index) => {
+        const date = new Date(item.timestamp);
+        const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+        const typeName = loanTypeNames[item.loanType] || item.loanType;
+
+        return `
+            <div class="history-item">
+                <div class="history-item-main" onclick="applyHistoryItem(${index})">
+                    <div class="history-item-header">
+                        <span class="history-item-type">${typeName}</span>
+                        <span class="history-item-date">${dateStr}</span>
+                    </div>
+                    <div class="history-item-details">
+                        <span class="history-item-amount">${i18n.formatCurrency(item.productAmount)}</span>
+                        <span> · ${item.interestRate}% · ${item.termYears}${i18n.t('years') || '年'}</span>
+                    </div>
+                </div>
+                <div class="history-item-actions">
+                    <button type="button" class="history-action-btn" onclick="event.stopPropagation(); downloadHistoryItem(${index})" title="下載">📥</button>
+                    <button type="button" class="history-action-btn delete" onclick="event.stopPropagation(); deleteHistoryItem(${index})" title="刪除">✕</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Apply history item to form
+function applyHistoryItem(index) {
+    const history = loadHistory();
+    const item = history[index];
+    if (!item) return;
+
+    // Apply values to form
+    if (elements.loanTypeSelect) elements.loanTypeSelect.value = item.loanType;
+    if (elements.productAmount) elements.productAmount.value = i18n.formatNumber(item.productAmount);
+    if (elements.loanRatio) elements.loanRatio.value = item.loanRatio;
+    if (elements.interestRate) elements.interestRate.value = item.interestRate;
+    if (elements.loanTerm) elements.loanTerm.value = item.termYears;
+
+    // Update derived loan amount
+    updateLoanAmount();
+
+    // Close history dropdown
+    const dropdown = elements.historyToggle.parentElement;
+    dropdown.classList.remove('active');
+
+    // Skip saving to history when restoring
+    window._skipHistorySave = true;
+
+    // Trigger calculation (won't save to history due to flag)
+    calculate();
+}
+
+// Clear all history
+function clearHistory() {
+    localStorage.removeItem(HISTORY_KEY);
+    displayHistory();
+}
+
+// Delete single history item
+function deleteHistoryItem(index) {
+    let history = loadHistory();
+    history.splice(index, 1);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    displayHistory();
+}
+
+// Copy single history item
+function copyHistoryItem(index) {
+    const history = loadHistory();
+    const item = history[index];
+    if (!item) return;
+
+    const loanTypeNames = {
+        mortgage: i18n.t('mortgage') || '房貸',
+        car: i18n.t('carLoan') || '車貸',
+        personal: i18n.t('personalLoan') || '信貸',
+        other: i18n.t('other') || '其他'
+    };
+
+    const text = [
+        `📊 ${loanTypeNames[item.loanType] || item.loanType} 試算結果`,
+        '',
+        `商品金額: ${i18n.formatCurrency(item.productAmount)}`,
+        `貸款成數: ${item.loanRatio}%`,
+        `年利率: ${item.interestRate}%`,
+        `貸款年限: ${item.termYears} 年`,
+        '',
+        `💰 每月還款: ${i18n.formatCurrency(item.monthlyPayment)}`,
+        `📈 總還款金額: ${i18n.formatCurrency(item.totalPayment)}`,
+        `💵 總利息: ${i18n.formatCurrency(item.totalInterest)}`,
+        `📉 APR: ${item.apr.toFixed(2)}%`
+    ].join('\n');
+
+    copyToClipboard(text);
+}
+
+// Helper function to copy text with fallback
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('已複製到剪貼簿');
+        }).catch(() => {
+            fallbackCopyToClipboard(text);
+        });
+    } else {
+        fallbackCopyToClipboard(text);
+    }
+}
+
+function fallbackCopyToClipboard(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        showToast('已複製到剪貼簿');
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        showToast('複製失敗');
+    }
+    document.body.removeChild(textarea);
+}
+
+// Share single history item
+function shareHistoryItem(index) {
+    const history = loadHistory();
+    const item = history[index];
+    if (!item) return;
+
+    const loanTypeNames = {
+        mortgage: i18n.t('mortgage') || '房貸',
+        car: i18n.t('carLoan') || '車貸',
+        personal: i18n.t('personalLoan') || '信貸',
+        other: i18n.t('other') || '其他'
+    };
+
+    const shareText = `${loanTypeNames[item.loanType]} ${i18n.formatCurrency(item.productAmount)} · ${item.interestRate}% · ${item.termYears}年 → 月付 ${i18n.formatCurrency(item.monthlyPayment)}`;
+
+    const shareData = {
+        title: i18n.t('shareTitle') || '貸款試算結果',
+        text: shareText,
+        url: window.location.href
+    };
+
+    if (navigator.share) {
+        navigator.share(shareData).catch(() => { });
+    } else {
+        copyToClipboard(`${shareData.title}\n${shareText}\n${shareData.url}`);
+    }
+}
+
+// Download single history item as text/CSV
+function downloadHistoryItem(index) {
+    const history = loadHistory();
+    const item = history[index];
+    if (!item) return;
+
+    const loanTypeNames = {
+        mortgage: i18n.t('mortgage') || '房貸',
+        car: i18n.t('carLoan') || '車貸',
+        personal: i18n.t('personalLoan') || '信貸',
+        other: i18n.t('other') || '其他'
+    };
+
+    // Create CSV content
+    const csvContent = [
+        '欄位,數值',
+        `貸款類型,${loanTypeNames[item.loanType] || item.loanType}`,
+        `商品金額,${item.productAmount}`,
+        `貸款成數,${item.loanRatio}%`,
+        `年利率,${item.interestRate}%`,
+        `貸款年限,${item.termYears}`,
+        `每月還款,${item.monthlyPayment}`,
+        `總還款金額,${item.totalPayment}`,
+        `總利息,${item.totalInterest}`,
+        `APR,${item.apr.toFixed(2)}%`
+    ].join('\n');
+
+    // Add BOM for Excel compatibility
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `loan_${item.loanType}_${new Date(item.timestamp).toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+// Show toast notification
+function showToast(message) {
+    const existing = document.querySelector('.toast-notification');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 2000);
+}
+
+// Make functions globally available
+window.applyHistoryItem = applyHistoryItem;
+window.deleteHistoryItem = deleteHistoryItem;
+window.copyHistoryItem = copyHistoryItem;
+window.shareHistoryItem = shareHistoryItem;
+window.downloadHistoryItem = downloadHistoryItem;
+
+// ============ REAL-TIME VALIDATION ============
+
+const validationRules = {
+    productAmount: {
+        validate: (value) => parseFloat(value.replace(/,/g, '')) > 0,
+        message: () => i18n.t('errorProductAmount') || '請輸入有效金額'
+    },
+    loanRatio: {
+        validate: (value) => {
+            const num = parseFloat(value);
+            return num >= 1 && num <= 100;
+        },
+        message: () => i18n.t('errorLoanRatio') || '成數需介於 1-100%'
+    },
+    interestRate: {
+        validate: (value) => {
+            const num = parseFloat(value);
+            return num >= 0 && num <= 100;
+        },
+        message: () => i18n.t('errorInterestRate') || '利率需介於 0-100%'
+    },
+    loanTerm: {
+        validate: (value) => {
+            const num = parseInt(value);
+            return num > 0; // Only require > 0
+        },
+        message: () => i18n.t('errorLoanTerm') || '年限需大於 0'
+    }
+};
+
+function validateField(input) {
+    const fieldId = input.id;
+    const rule = validationRules[fieldId];
+    if (!rule) return true;
+
+    const value = input.value;
+    const isValid = rule.validate(value);
+    const formGroup = input.closest('.form-group');
+
+    // Remove existing error tooltip
+    const existingTooltip = formGroup ? formGroup.querySelector('.error-tooltip') : null;
+    if (existingTooltip) existingTooltip.remove();
+
+    if (!isValid && value !== '') {
+        input.classList.add('input-error');
+        if (formGroup) {
+            formGroup.classList.add('has-error');
+            const tooltip = document.createElement('span');
+            tooltip.className = 'error-tooltip';
+            tooltip.textContent = rule.message();
+            formGroup.appendChild(tooltip);
+        }
+        return false;
+    } else {
+        input.classList.remove('input-error');
+        if (formGroup) {
+            formGroup.classList.remove('has-error');
+        }
+        return true;
+    }
+}
+
+function setupRealTimeValidation() {
+    const fieldsToValidate = ['productAmount', 'loanRatio', 'interestRate', 'loanTerm'];
+
+    fieldsToValidate.forEach(fieldId => {
+        const input = document.getElementById(fieldId);
+        if (input) {
+            input.addEventListener('blur', () => validateField(input));
+            input.addEventListener('input', () => {
+                // Clear error on input (will re-validate on blur)
+                const formGroup = input.closest('.form-group');
+                const existingTooltip = formGroup ? formGroup.querySelector('.error-tooltip') : null;
+                if (existingTooltip) existingTooltip.remove();
+                input.classList.remove('input-error');
+                if (formGroup) formGroup.classList.remove('has-error');
+            });
+        }
+    });
+}
+
+// Initialize validation on page load
+document.addEventListener('DOMContentLoaded', setupRealTimeValidation);

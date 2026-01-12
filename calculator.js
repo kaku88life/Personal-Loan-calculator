@@ -550,19 +550,55 @@ async function downloadPDF(schedule, summary, i18nInstance, fontName = 'YuPearl-
 
     let fontLoaded = false;
 
-    // Load and add custom font for Chinese support
-    try {
-        if (typeof FontLoader !== 'undefined' && fontName) {
-            await FontLoader.addFontToPDF(doc, fontName);
-            doc.setFont(fontName);
-            fontLoaded = true;
-            console.log(`Font ${fontName} loaded successfully`);
+    // Load custom font for Chinese support
+    // Check for Custom Font - always try to load for Chinese support
+    if (fontName === 'NotoSansTC' || fontName === 'CustomFont' || fontName === 'YuPearl-Medium' || fontName.includes('YuPearl')) {
+        try {
+            const fontFileName = 'YUPEARL-MEDIUM.TTF';
+            console.log(`Attempting to load font: ${fontFileName}`);
+
+            const fontUrl = `fonts/${fontFileName}`;
+            console.log('Font URL:', fontUrl);
+
+            const response = await fetch(fontUrl);
+
+            if (!response.ok) {
+                throw new Error(`Font file not found at ${fontUrl} (Status: ${response.status})`);
+            }
+
+            const blob = await response.blob();
+            const reader = new FileReader();
+
+            await new Promise((resolve, reject) => {
+                reader.onloadend = resolve;
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+
+            if (!reader.result) {
+                throw new Error('Failed to read font file data');
+            }
+
+            const base64data = reader.result.split(',')[1];
+
+            if (base64data) {
+                doc.addFileToVFS(fontFileName, base64data);
+                doc.addFont(fontFileName, 'CustomFont', 'normal');
+                doc.setFont('CustomFont');
+                fontLoaded = true;
+                console.log('Custom font loaded and set successfully');
+            } else {
+                console.warn('Empty base64 data for font');
+            }
+
+        } catch (error) {
+            console.error('Error loading custom font:', error);
+            console.warn('Falling back to standard Helvetica font (Chinese characters may not display)');
         }
-    } catch (error) {
-        console.warn('Failed to load custom font, using default font:', error);
-        // Reset to default font
+    }
+
+    if (!fontLoaded) {
         doc.setFont('helvetica');
-        fontLoaded = false;
     }
 
     // Title
@@ -644,7 +680,7 @@ async function downloadPDF(schedule, summary, i18nInstance, fontName = 'YuPearl-
     const tableStyles = {
         fontSize: 8,
         cellPadding: 2,
-        font: fontLoaded ? fontName : 'helvetica'
+        font: fontLoaded ? 'CustomFont' : 'helvetica'
     };
 
     doc.autoTable({
