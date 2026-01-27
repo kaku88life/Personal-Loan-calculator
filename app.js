@@ -111,7 +111,7 @@ const elements = {
     exportExcel: document.getElementById('exportExcel'),
     exportPDF: document.getElementById('exportPDF'),
     shareBtn: document.getElementById('shareBtn'),
-    copyResultsBtn: document.getElementById('copyResultsBtn'),
+
 
     // Other UI elements
     resetBtn: document.getElementById('resetBtn'),
@@ -591,10 +591,7 @@ function setupEventListeners() {
     elements.exportPDF.addEventListener('click', exportToPDF);
     elements.shareBtn.addEventListener('click', shareResults);
 
-    // Copy button
-    if (elements.copyResultsBtn) {
-        elements.copyResultsBtn.addEventListener('click', copyResults);
-    }
+
 
     // History dropdown toggle
     if (elements.historyToggle) {
@@ -1622,60 +1619,7 @@ async function exportToPDF() {
     }
 }
 
-// Copy results to clipboard
-async function copyResults() {
-    if (!currentSummary) return;
 
-    const summary = currentSummary;
-    const lines = [
-        `📊 ${i18n.t('title') || '貸款試算結果'}`,
-        '',
-        `${i18n.t('loanAmount')}: ${i18n.formatCurrency(summary.actualAmount)}`,
-        `${i18n.t('interestRate')}: ${summary.annualRate}%`,
-        `${i18n.t('loanTerm')}: ${summary.termYears} ${i18n.t('years')}`,
-    ];
-
-    if (summary.gracePeriodMonths > 0) {
-        lines.push(`${i18n.t('gracePeriod')}: ${summary.gracePeriodMonths} ${i18n.t('months')}`);
-    }
-
-    lines.push('');
-    lines.push(`💰 ${i18n.t('monthlyPayment')}: ${i18n.formatCurrency(summary.monthlyPayment)}`);
-    lines.push(`📈 ${i18n.t('totalPayment')}: ${i18n.formatCurrency(summary.totalPayment)}`);
-    lines.push(`💵 ${i18n.t('totalInterest')}: ${i18n.formatCurrency(summary.totalInterest)}`);
-    lines.push(`📉 ${i18n.t('apr')}: ${summary.apr.toFixed(2)}%`);
-
-    const text = lines.join('\n');
-
-    try {
-        await navigator.clipboard.writeText(text);
-        // Show success feedback
-        if (elements.copyResultsBtn) {
-            elements.copyResultsBtn.classList.add('copied');
-            setTimeout(() => {
-                elements.copyResultsBtn.classList.remove('copied');
-            }, 2000);
-        }
-    } catch (err) {
-        console.error('Copy failed:', err);
-        // Fallback for older browsers
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-
-        if (elements.copyResultsBtn) {
-            elements.copyResultsBtn.classList.add('copied');
-            setTimeout(() => {
-                elements.copyResultsBtn.classList.remove('copied');
-            }, 2000);
-        }
-    }
-}
 
 // Share results
 async function shareResults() {

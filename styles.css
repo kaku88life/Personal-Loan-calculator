@@ -2408,65 +2408,7 @@ input[type="number"] {
     gap: 8px;
 }
 
-/* Copy Button */
-.btn-copy {
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 50%;
-    background: var(--bg-card);
-    color: var(--text-primary);
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    border: 1px solid var(--border-color);
-}
 
-.btn-copy:hover {
-    background: var(--accent-color);
-    color: white;
-    border-color: var(--accent-color);
-    transform: scale(1.1);
-}
-
-.btn-copy .copy-success {
-    display: none;
-    color: var(--success-color);
-    font-weight: bold;
-}
-
-.btn-copy.copied .copy-icon {
-    display: none;
-}
-
-.btn-copy.copied .copy-success {
-    display: block;
-    animation: checkmark 0.3s ease-out;
-}
-
-.btn-copy.copied {
-    background: var(--success-color);
-    border-color: var(--success-color);
-    color: white;
-}
-
-@keyframes checkmark {
-    0% {
-        transform: scale(0);
-    }
-
-    50% {
-        transform: scale(1.3);
-    }
-
-    100% {
-        transform: scale(1);
-    }
-}
 
 /* History Dropdown */
 .history-dropdown {
